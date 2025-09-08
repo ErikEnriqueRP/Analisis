@@ -1,0 +1,109 @@
+/* ---- Configuración General ---- */
+body {
+    font-family: 'Montserrat', sans-serif;
+    margin: 0;
+    background-color: #f8f9fa;
+    color: #002d20; /* Color de texto principal (verde oscuro) */
+}
+
+/* ---- Encabezado Principal ---- */
+.main-header {
+    background-color: #fff;
+    padding: 20px 40px;
+    border-top: 5px solid #e8f5e9; /* Borde superior verde claro */
+    position: relative;
+    overflow: hidden; /* Evita que las formas decorativas se salgan */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.header-content {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ---- Sección Superior: Logo y Título ---- */
+.header-top {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.logo {
+    height: 45px;
+    margin-right: 25px;
+}
+
+h1 {
+    font-size: 2.5rem; /* rem es una unidad de medida flexible */
+    font-weight: 700;
+    margin: 0;
+}
+
+/* ---- Sección Inferior: Nombre de Archivo y Botones ---- */
+.header-bottom {
+    display: flex;
+    justify-content: space-between; /* Empuja los elementos a los extremos */
+    align-items: center;
+}
+
+#fileName {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* ---- Grupo de Botones ---- */
+.button-group {
+    display: flex;
+    gap: 10px; /* Espacio entre los botones */
+}
+
+.button-group button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 20px; /* Bordes muy redondeados */
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+    background-color: #004b5a; /* Color base (verde azulado) */
+    color: white;
+    transition: transform 0.2s ease;
+}
+
+.button-group button:hover {
+    transform: translateY(-2px); /* Pequeño efecto al pasar el cursor */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Estilo especial para el botón primario */
+.button-group .btn-primary {
+    background-color: #fdb913; /* Color amarillo/dorado */
+    color: #002d20; /* Texto oscuro */
+}
+
+
+/* ---- Formas Decorativas de la Derecha ---- */
+.decorative-shape-yellow, .decorative-shape-teal {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+}
+
+.decorative-shape-yellow {
+    width: 150px;
+    background-color: #fdb913;
+    z-index: 1;
+}
+
+.decorative-shape-teal {
+    width: 120px;
+    background-color: #004b5a;
+    /* Opcional: para añadir una textura sutil como en la imagen */
+    background-image: url('data:image/svg+xml,%3Csvg width="6" height="6" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%23ffffff" fill-opacity="0.1" fill-rule="evenodd"%3E%3Cpath d="M5 0h1L0 6V5zM6 5v1H5z"/%3E%3C/g%3E%3C/svg%3E');
+    z-index: 2;
+    right: 15px; /* Pequeño desfase para que se vea el amarillo */
+    top: 15px;
+    height: calc(100% - 30px); /* Para que sea un poco más pequeña que el contenedor */
+}

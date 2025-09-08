@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador de CSV con Gráficos</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+    <link rel="stylesheet" href="styles/estilotabla.css">
+</head>
+<body>
+    <h1>Tabla de JIRAS</h1>
+
+    <div class="controls-wrapper">
+        <button id="manageColumnsBtn" class="btn btn-purple">Gestionar Columnas</button>
+        <button id="createChartBtn" class="btn btn-purple">Crear Gráfico</button>
+        <button a href="Va_Tablas.html" class="btn btn-blue">Crear Tablas</button>
+        <button id="resetFiltersBtn" class="btn btn-red">Limpiar Filtros</button>
+        <button id="exportBtn" class="btn btn-green">Exportar a Excel</button>
+    </div>
+
+    <div id="csvTableContainer"></div>
+
+    <div id="columnsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h2>Gestionar Columnas</h2>
+            <div id="columnsList"></div>
+            <hr>
+            <h3>Agregar columna con IZQUIERDA()</h3>
+            <div class="left-config">
+                <label>Columna base:
+                    <select id="leftSourceColumn"></select>
+                </label>
+                <label>Número de caracteres:
+                    <input type="number" id="leftNumChars" min="1" value="2">
+                </label>
+                <label>Columna para concatenar (opcional):
+                    <select id="leftConcatColumn"><option value="">-- Ninguna --</option></select>
+                </label>
+                <label>Nombre nueva columna:
+                    <input type="text" id="leftNewColumnName" placeholder="Ej: Area_IZQ">
+                </label>
+                <label class="auto-apply-label"><input type="checkbox" id="leftAutoApply"> Aplicar automáticamente al cargar</label>
+                <div class="left-actions">
+                    <button id="addLeftColumnBtn" class="btn btn-blue">Aplicar y Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="chartModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h2>Crear Gráfico de Pastel</h2>
+            <div class="chart-controls">
+                <label for="categoryColumn">Columna para Categorías:</label>
+                <select id="categoryColumn"></select>
+                <label for="valueColumn">Columna para Valores (numérica):</label>
+                <select id="valueColumn"></select>
+                <button id="generateChartBtn" class="btn btn-blue">Generar Gráfico</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <script src="tabla.js"></script>
+</body>
+</html>
