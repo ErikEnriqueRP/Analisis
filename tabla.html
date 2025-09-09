@@ -64,11 +64,27 @@
             </div>
         </div>
     </div>
+    <div id="filterModal" class="modal">
+        <div class="modal-content filter-modal-content">
+            <span class="close-button">×</span>
+            <h2 id="filterModalTitle">Filtrar Columna</h2>
+            <div class="filter-controls">
+                <input type="text" id="filterSearchInput" placeholder="Buscar valores...">
+                <button id="selectAllBtn" class="btn btn-small">Seleccionar Todo</button>
+                <button id="deselectAllBtn" class="btn btn-small">Deseleccionar Todo</button>
+            </div>
+            <div id="filterOptions" class="filter-options-list">
+            </div>
+            <div class="modal-actions">
+                <button id="applyFilterBtn" class="btn btn-blue">Aplicar</button>
+                <button id="cancelFilterBtn" class="btn btn-red">Cancelar</button>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script src="script/tabla.js"></script>
 </body>
