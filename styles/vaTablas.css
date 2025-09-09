@@ -1,0 +1,164 @@
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #8e44ad;
+    --success-color: #27ae60;
+    --danger-color: #e74c3c;
+    --dark-color: #2c3e50;
+    --light-color: #ecf0f1;
+    --background-color: #f4f7f6;
+    --text-color: #333;
+    --border-radius: 5px;
+    --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 2rem;
+}
+
+.main-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.main-header h1 {
+    color: var(--dark-color);
+}
+
+.btn {
+    padding: 12px 24px;
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: bold;
+    font-family: 'Roboto', sans-serif;
+    transition: background-color 0.3s, transform 0.1s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+}
+
+.btn:active { transform: scale(0.98); }
+.btn-blue { background-color: var(--primary-color); }
+.btn-blue:hover { background-color: #2980b9; }
+.btn-purple { background-color: var(--secondary-color); }
+.btn-purple:hover { background-color: #7d3c98; }
+.btn-green { background-color: var(--success-color); }
+.btn-green:hover { background-color: #229954; }
+.btn-red { background-color: var(--danger-color); }
+.btn-red:hover { background-color: #c0392b; }
+.btn-small { padding: 8px 12px; font-size: 0.9em; }
+
+.controls-wrapper {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+#dashboard-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.table-card {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.table-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--light-color);
+    padding-bottom: 1rem;
+}
+
+.table-card-header h3 { margin: 0; color: var(--dark-color); }
+
+.table-card-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.table-card-controls .btn-delete-table {
+    background-color: transparent;
+    color: var(--danger-color);
+    padding: 5px 10px;
+    text-transform: none;
+    font-weight: normal;
+    border: 1px solid var(--danger-color);
+}
+
+.table-card-controls .btn-delete-table:hover { 
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.table-container {
+    overflow-x: auto;
+    max-height: 400px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+table thead tr { background-color: var(--dark-color); color: white; }
+table th, table td { padding: 10px 12px; border-bottom: 1px solid #dddddd; text-align: left; }
+table tbody tr:nth-of-type(even) { background-color: #f9f9f9; }
+
+.modal {
+    display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+    width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6);
+    align-items: center; justify-content: center;
+}
+.modal-content {
+    background-color: #fff; margin: auto; padding: 25px;
+    border-radius: 8px; width: 90%; max-width: 600px;
+    box-shadow: var(--box-shadow);
+}
+.close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+.close-button:hover { color: black; }
+
+.form-group { margin-bottom: 1.5rem; }
+.form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
+.form-group input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: var(--border-radius);
+    box-sizing: border-box;
+}
+
+#modalColumnsList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    background-color: #f9f9f9;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    max-height: 250px;
+    overflow-y: auto;
+}
+#modalColumnsList label { font-weight: normal; display: flex; align-items: center; gap: 8px; }
+
+.chart-controls { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem; }
+.chart-controls select { padding: 10px; border-radius: var(--border-radius); border: 1px solid #ccc; }
+.chart-container-card { position: relative; height: 300px; margin-top: 1rem; }

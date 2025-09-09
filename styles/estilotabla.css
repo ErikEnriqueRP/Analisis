@@ -33,8 +33,8 @@ button:active {
 .btn-green  { background-color: #27ae60; }
 .btn-green:hover { background-color: #229954; }
 
-.btn-purple { background-color:  #f3ab1c; }
-.btn-purple:hover { background-color: #d89b20; }
+.btn-yellow { background-color:  #f3ab1c; }
+.btn-yellow:hover { background-color: #d89b20; }
 
 .btn-blue   { background-color: #044383; }
 .btn-blue:hover { background-color: #02386e; }

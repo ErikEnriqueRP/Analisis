@@ -1,32 +1,22 @@
-// --- VARIABLES GLOBALES DE LA PÁGINA (MOVIDAS AQUÍ PARA CORREGIR EL ERROR) ---
 let tableData = [];
 let filteredData = [];
 let headers = [];
 let myPieChart = null;
-// La configuración de la columna 'IZQUIERDA' se lee una sola vez al cargar.
 let leftColumnConfig = JSON.parse(localStorage.getItem('leftColumnConfig') || 'null') || { enabled: false, source: '', numChars: 2, concat: '', newName: '' };
 let chartImageDataUrl = null;
 let chartAggregatedData = null;
 
-
 document.addEventListener('DOMContentLoaded', () => {
-    // --- LÓGICA DE CARGA AUTOMÁTICA ---
-
     const csvData = localStorage.getItem('csvData');
     const csvFileName = localStorage.getItem('csvFileName');
 
     if (csvData) {
-        // Si se encontraron datos del CSV...
         document.querySelector('h1').textContent = `Tabla de JIRAS: ${csvFileName || 'Archivo Cargado'}`;
-        parseAndDisplayCSV(csvData); // Ahora 'headers' y 'tableData' ya existen.
+        parseAndDisplayCSV(csvData);
         setupEventListeners();
-        
-        // Limpia el almacenamiento.
         localStorage.removeItem('csvData');
         localStorage.removeItem('csvFileName');
-        
     } else {
-        // Si no se encontraron datos...
         const tableContainer = document.getElementById('csvTableContainer');
         const controls = document.querySelector('.controls-wrapper');
 
@@ -42,14 +32,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-
-// ===== RESTO DEL CÓDIGO (FUNCIONES) =====
-
 function setupEventListeners() {
     document.getElementById('resetFiltersBtn').addEventListener('click', resetAllFilters);
     document.getElementById('exportBtn').addEventListener('click', exportToExcelWithChart);
     document.getElementById('manageColumnsBtn').addEventListener('click', openColumnsModal);
     document.getElementById('createChartBtn').addEventListener('click', openChartModal);
+    document.getElementById('createDashboardBtn').addEventListener('click', navigateToDashboard);
     document.getElementById('addLeftColumnBtn').addEventListener('click', handleAddLeftColumn);
     document.getElementById('generateChartBtn').addEventListener('click', generateChartFromFilteredData);
     
@@ -65,11 +53,7 @@ function parseAndDisplayCSV(csvData) {
     const lines = csvData.trim().split(/\r?\n/);
     const headerLine = lines[0];
     if (!headerLine) return;
-
-    // Aquí se usa 'headers', que ahora está declarada globalmente.
     headers = headerLine.split(',').map(h => ({ name: h.trim(), visible: true }));
-    
-    // Aquí se usa 'tableData'.
     tableData = lines.slice(1).map(line => {
         if (!line.trim()) return null;
         const values = line.split(',');
@@ -292,7 +276,7 @@ function openChartModal() {
             const value = row[h.name];
             if (value && value.trim() !== '') {
                 hasAnyValue = true;
-                if (isNaN(Number(value.replace(/,/g, '')))) { // Handle numbers with commas
+                if (isNaN(Number(value.replace(/,/g, '')))) { 
                     isColumnNumeric = false;
                     break;
                 }
@@ -345,8 +329,16 @@ function applyLeftColumn(cfg, rerender) {
     });
 
     if (rerender) {
-        filteredData = [...tableData]; // Actualizar los datos filtrados también
+        filteredData = [...tableData]; 
         renderTable();
+    }
+}
+function navigateToDashboard() {
+    if (tableData.length > 0) {
+        sessionStorage.setItem('csvData', JSON.stringify(tableData));
+        window.location.href = 'vaTablas.html';
+    } else {
+        alert("No hay datos para llevar al dashboard.");
     }
 }
 
@@ -366,7 +358,7 @@ function generateChartFromFilteredData() {
     } else {
         aggregatedData = filteredData.reduce((acc, row) => {
             const category = row[categoryCol] || 'Sin categoría';
-            const value = parseFloat(String(row[valueCol]).replace(/,/g, '')) || 0; // Handle numbers with commas
+            const value = parseFloat(String(row[valueCol]).replace(/,/g, '')) || 0;
             if (value !== 0) {
               acc[category] = (acc[category] || 0) + value;
             }
