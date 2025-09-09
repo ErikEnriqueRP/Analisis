@@ -93,6 +93,7 @@ table tbody tr:hover {
     display: none;
 }
 
+/* --- Modales (Estilos Generales) --- */
 .modal {
     display: none;
     position: fixed;
@@ -113,7 +114,7 @@ table tbody tr:hover {
     padding: 25px;
     border-radius: 8px;
     width: 90%;
-    max-width: 700px; 
+    max-width: 700px;
     box-shadow: var(--box-shadow);
     position: relative;
 }
@@ -129,42 +130,43 @@ table tbody tr:hover {
 }
 .close-button:hover { color: black; }
 
+/* --- ESTILOS MEJORADOS PARA EL MODAL "GESTIONAR COLUMNAS" --- */
 #columnsList {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
-    gap: 12px; 
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
     background-color: #f9f9f9;
     padding: 1rem;
     border: 1px solid #e0e0e0;
     border-radius: var(--border-radius);
-    max-height: 180px; 
-    overflow-y: auto; 
+    max-height: 180px;
+    overflow-y: auto;
 }
 
 #columnsList label {
     display: flex;
     align-items: center;
-    gap: 8px; 
+    gap: 8px;
     font-size: 0.95em;
 }
 
 hr {
     border: none;
     border-top: 1px solid #e0e0e0;
-    margin: 2rem 0; 
+    margin: 2rem 0;
 }
 
 .left-config {
     display: grid;
-    grid-template-columns: auto 1fr; 
-    gap: 15px; 
-    align-items: center; 
+    grid-template-columns: auto 1fr;
+    gap: 15px;
+    align-items: center;
 }
 
 .left-config label {
     font-weight: bold;
     color: #555;
-    text-align: right; 
+    text-align: right;
 }
 
 .left-config select,
@@ -174,20 +176,55 @@ hr {
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
-    box-sizing: border-box; 
+    box-sizing: border-box;
 }
 
 .auto-apply-label {
-    grid-column: 1 / -1; 
+    grid-column: 1 / -1;
     text-align: left;
     font-weight: normal;
 }
 
 .left-actions {
-    grid-column: 1 / -1; 
-    text-align: right; 
+    grid-column: 1 / -1;
+    text-align: right;
 }
 
+/* --- ESTILOS MEJORADOS PARA EL MODAL "CREAR GRÁFICO" --- */
+
+/* 1. Hace que los controles se apilen verticalmente */
+.chart-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem; /* Espacio generoso entre cada control */
+}
+
+/* 2. Estiliza las etiquetas para que sean claras y estén encima de su selector */
+.chart-controls label {
+    font-weight: bold;
+    color: #555;
+    display: block; /* Asegura que ocupe su propia línea */
+    margin-bottom: 6px; /* Pequeño espacio entre la etiqueta y el selector */
+}
+
+/* 3. Estiliza los menús desplegables para que sean consistentes */
+.chart-controls select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    background-color: white; /* Asegura un fondo blanco */
+}
+
+/* 4. Da espacio y alinea el botón de generar */
+#generateChartBtn {
+    margin-top: 1rem; /* Espacio extra arriba del botón */
+    align-self: flex-start; /* Alinea el botón a la izquierda */
+}
+
+
+/* --- ESTILOS PARA EL FILTRO TIPO EXCEL --- */
 .filter-icon {
     display: inline-block;
     margin-left: 8px;
