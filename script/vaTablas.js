@@ -1,10 +1,6 @@
-// Variable global para almacenar todos los datos del CSV.
 let fullData = [];
-// Variable global para almacenar las cabeceras (nombres de las columnas).
 let headers = [];
-// Variable global para mantener un registro de las tablas que el usuario ha creado.
 let customTables = [];
-// Variable temporal para saber en qué tabla se está creando un gráfico.
 let activeTableIdForChart = null;
 
 document.addEventListener('DOMContentLoaded', () => {

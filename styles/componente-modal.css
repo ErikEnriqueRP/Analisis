@@ -36,14 +36,14 @@
 }
 
 .modal-content h2 {
-    color: #004d40; /* Verde oscuro */
+    color: #004d40; 
     font-size: 1.8em;
     margin: 0 0 15px 0;
     text-align: center;
 }
 
 .modal-content p {
-    color: #333; /* Texto principal más oscuro */
+    color: #333; 
     font-size: 1em;
     line-height: 1.6;
     margin: 0 0 25px 0;
@@ -51,8 +51,8 @@
 
 .modal-actions {
     display: flex;
-    justify-content: flex-end; /* Alinea los botones a la derecha */
-    gap: 20px; /* Espacio entre los botones */
+    justify-content: flex-end;
+    gap: 20px; 
 }
 
 .modal-actions button {
@@ -76,7 +76,7 @@
 }
 
 .modal-actions .btn-denegar {
-    color: #6c757d; /* Gris */
+    color: #6c757d;
 }
 
 .modal-actions .btn-denegar:hover {

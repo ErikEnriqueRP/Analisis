@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap');
 
-/* Reseteo básico para un diseño de pantalla completa */
 *, *::before, *::after {
     box-sizing: border-box;
 }

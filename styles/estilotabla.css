@@ -24,7 +24,6 @@ h1 {
     margin-bottom: 2rem;
 }
 
-/* --- Controles y Botones --- */
 .controls-wrapper {
     display: flex;
     justify-content: center;
@@ -56,7 +55,6 @@ h1 {
 .btn-green:hover { background-color: #229954; }
 .btn-small { padding: 5px 10px; font-size: 0.8em; }
 
-/* --- Tabla de Datos --- */
 #csvTableContainer {
     overflow-x: auto;
     background-color: white;
@@ -67,6 +65,7 @@ h1 {
 table {
     width: 100%;
     border-collapse: collapse;
+    overflow: hidden;
 }
 
 table th, table td {
@@ -93,7 +92,6 @@ table tbody tr:hover {
     display: none;
 }
 
-/* --- ESTILOS PARA LA PAGINACIÓN --- */
 .pagination-wrapper {
     display: flex;
     justify-content: center;
@@ -142,7 +140,6 @@ table tbody tr:hover {
     color: #555;
 }
 
-/* --- Modales (Estilos Generales) --- */
 .modal {
     display: none;
     position: fixed;
@@ -179,7 +176,6 @@ table tbody tr:hover {
 }
 .close-button:hover { color: black; }
 
-/* --- ESTILOS MEJORADOS PARA EL MODAL "GESTIONAR COLUMNAS" --- */
 #columnsList {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -239,7 +235,6 @@ hr {
     text-align: right;
 }
 
-/* --- ESTILOS MEJORADOS PARA EL MODAL "CREAR GRÁFICO" --- */
 .chart-controls {
     display: flex;
     flex-direction: column;
@@ -268,7 +263,6 @@ hr {
 }
 
 
-/* --- ESTILOS PARA EL FILTRO TIPO EXCEL --- */
 .filter-icon {
     display: inline-block;
     margin-left: 8px;

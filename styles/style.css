@@ -1,18 +1,16 @@
-/* ---- Configuración General ---- */
 body {
     font-family: 'Montserrat', sans-serif;
     margin: 0;
     background-color: #f8f9fa;
-    color: #002d20; /* Color de texto principal (verde oscuro) */
+    color: #002d20;
 }
 
-/* ---- Encabezado Principal ---- */
 .main-header {
     background-color: #fff;
     padding: 20px 40px;
-    border-top: 5px solid #e8f5e9; /* Borde superior verde claro */
+    border-top: 5px solid #e8f5e9;
     position: relative;
-    overflow: hidden; /* Evita que las formas decorativas se salgan */
+    overflow: hidden; 
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
@@ -21,7 +19,6 @@ body {
     flex-direction: column;
 }
 
-/* ---- Sección Superior: Logo y Título ---- */
 .header-top {
     display: flex;
     align-items: center;
@@ -34,15 +31,14 @@ body {
 }
 
 h1 {
-    font-size: 2.5rem; /* rem es una unidad de medida flexible */
+    font-size: 2.5rem;
     font-weight: 700;
     margin: 0;
 }
 
-/* ---- Sección Inferior: Nombre de Archivo y Botones ---- */
 .header-bottom {
     display: flex;
-    justify-content: space-between; /* Empuja los elementos a los extremos */
+    justify-content: space-between;
     align-items: center;
 }
 
@@ -52,38 +48,34 @@ h1 {
     margin: 0;
 }
 
-/* ---- Grupo de Botones ---- */
 .button-group {
     display: flex;
-    gap: 10px; /* Espacio entre los botones */
+    gap: 10px; 
 }
 
 .button-group button {
     padding: 8px 16px;
     border: none;
-    border-radius: 20px; /* Bordes muy redondeados */
+    border-radius: 20px; 
     font-family: 'Montserrat', sans-serif;
     font-weight: 600;
     font-size: 0.8rem;
     cursor: pointer;
-    background-color: #004b5a; /* Color base (verde azulado) */
+    background-color: #004b5a; 
     color: white;
     transition: transform 0.2s ease;
 }
 
 .button-group button:hover {
-    transform: translateY(-2px); /* Pequeño efecto al pasar el cursor */
+    transform: translateY(-2px); 
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-/* Estilo especial para el botón primario */
 .button-group .btn-primary {
-    background-color: #fdb913; /* Color amarillo/dorado */
-    color: #002d20; /* Texto oscuro */
+    background-color: #fdb913; 
+    color: #002d20; 
 }
 
-
-/* ---- Formas Decorativas de la Derecha ---- */
 .decorative-shape-yellow, .decorative-shape-teal {
     position: absolute;
     top: 0;
@@ -100,10 +92,9 @@ h1 {
 .decorative-shape-teal {
     width: 120px;
     background-color: #004b5a;
-    /* Opcional: para añadir una textura sutil como en la imagen */
     background-image: url('data:image/svg+xml,%3Csvg width="6" height="6" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%23ffffff" fill-opacity="0.1" fill-rule="evenodd"%3E%3Cpath d="M5 0h1L0 6V5zM6 5v1H5z"/%3E%3C/g%3E%3C/svg%3E');
     z-index: 2;
-    right: 15px; /* Pequeño desfase para que se vea el amarillo */
+    right: 15px; 
     top: 15px;
-    height: calc(100% - 30px); /* Para que sea un poco más pequeña que el contenedor */
+    height: calc(100% - 30px); 
 }

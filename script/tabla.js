@@ -1,14 +1,7 @@
-// --- VARIABLES DE ESTADO ---
-// Variables para el estado de la paginación
 let currentPage = 1;
-const rowsPerPage = 50; // ¡Puedes cambiar esto! 25, 50, o 100 son buenos valores.
-
-// Almacena TODOS los datos del CSV. Nunca se modifica después de la carga inicial.
+const rowsPerPage = 100; 
 let fullData = [];
-// Almacena solo los datos que coinciden con los filtros actuales.
 let filteredData = [];
-
-// Variables para el resto de la aplicación
 let headers = [];
 let myPieChart = null;
 let leftColumnConfig = JSON.parse(localStorage.getItem('leftColumnConfig') || 'null') || { enabled: false, source: '', numChars: 2, concat: '', newName: '' };
@@ -16,7 +9,6 @@ let chartImageDataUrl = null;
 let chartAggregatedData = null;
 let activeFilters = {};
 
-// --- INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', () => {
     const csvData = localStorage.getItem('csvData');
     const csvFileName = localStorage.getItem('csvFileName');
@@ -70,33 +62,21 @@ function parseAndDisplayCSV(csvData) {
     if (leftColumnConfig && leftColumnConfig.enabled && leftColumnConfig.source) {
         applyLeftColumn(leftColumnConfig, false);
     }
-
-    // La primera vez, los datos filtrados son todos los datos.
     filteredData = [...fullData];
-    displayPage(); // Llamamos a la nueva función principal de renderizado.
+    displayPage(); 
 }
 
-// --- LÓGICA DE RENDERIZADO Y PAGINACIÓN ---
-
-/**
- * Función principal que orquesta el filtrado, la paginación y el renderizado.
- */
 function displayPage() {
-    applyActiveFilters(); // Primero, actualiza el array `filteredData` en memoria.
-
-    // Calcula qué porción (slice) de los datos filtrados se debe mostrar.
+    applyActiveFilters(); 
     const startIndex = (currentPage - 1) * rowsPerPage;
     const endIndex = startIndex + rowsPerPage;
     const paginatedData = filteredData.slice(startIndex, endIndex);
 
-    renderTable(paginatedData);      // Dibuja solo la porción de la tabla para la página actual.
-    renderPaginationControls();      // Dibuja los botones "Anterior" y "Siguiente".
+    renderTable(paginatedData);      
+    renderPaginationControls();      
 }
 
-/**
- * Dibuja la tabla en el HTML, pero SOLO con las filas que se le pasan.
- * @param {Array} dataToRender El array de objetos a renderizar (ej. 50 filas).
- */
+
 function renderTable(dataToRender) {
     const tableContainer = document.getElementById('csvTableContainer');
     let tableHTML = '<table><thead><tr>';
@@ -126,7 +106,6 @@ function renderTable(dataToRender) {
     tableHTML += '</tbody></table>';
     tableContainer.innerHTML = tableHTML;
 
-    // Vuelve a añadir los listeners a los iconos de filtro después de cada redibujado.
     document.querySelectorAll('.filter-icon').forEach(icon => {
         icon.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -135,15 +114,12 @@ function renderTable(dataToRender) {
     });
 }
 
-/**
- * Dibuja los botones de paginación y el contador de páginas.
- */
 function renderPaginationControls() {
     const controlsContainer = document.getElementById('pagination-controls');
     const totalPages = Math.ceil(filteredData.length / rowsPerPage);
     controlsContainer.innerHTML = '';
 
-    if (totalPages <= 1) return; // No se necesitan controles si todo cabe en una página.
+    if (totalPages <= 1) return; 
 
     let buttonsHTML = `
         <button id="prevPageBtn" ${currentPage === 1 ? 'disabled' : ''}>&laquo; Anterior</button>
@@ -152,8 +128,6 @@ function renderPaginationControls() {
     `;
 
     controlsContainer.innerHTML = buttonsHTML;
-
-    // Añade listeners a los nuevos botones.
     document.getElementById('prevPageBtn').addEventListener('click', () => {
         if (currentPage > 1) {
             currentPage--;
@@ -168,13 +142,6 @@ function renderPaginationControls() {
     });
 }
 
-
-// --- LÓGICA DE FILTRADO ---
-
-/**
- * Filtra el array `fullData` y actualiza `filteredData` basado en `activeFilters`.
- * Esta función NO toca el HTML, solo manipula datos en memoria, por lo que es muy rápida.
- */
 function applyActiveFilters() {
     const filterKeys = Object.keys(activeFilters);
 
@@ -184,7 +151,6 @@ function applyActiveFilters() {
     }
 
     filteredData = fullData.filter(row => {
-        // La fila debe cumplir con TODOS los filtros activos.
         return filterKeys.every(columnName => {
             const filterValues = activeFilters[columnName];
             const cellValue = row[columnName] || '';
@@ -211,14 +177,14 @@ function handleApplyFilter() {
     }
 
     modal.style.display = 'none';
-    currentPage = 1; // Siempre vuelve a la primera página después de aplicar un nuevo filtro.
+    currentPage = 1; 
     displayPage();
     updateFilterIcons();
 }
 
 function resetAllFilters() {
     activeFilters = {};
-    currentPage = 1; // Vuelve a la primera página.
+    currentPage = 1; 
     displayPage();
     updateFilterIcons();
 }
@@ -278,8 +244,6 @@ function updateFilterIcons() {
     });
 }
 
-// --- OTRAS FUNCIONES (Exportar, Gráficos, Columnas) ---
-
 async function exportToExcelWithChart() {
     if (filteredData.length === 0) {
         alert("No hay datos filtrados para exportar.");
@@ -301,8 +265,6 @@ async function exportToExcelWithChart() {
     worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
     worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8E44AD' } };
     
-    // Aquí puedes añadir la lógica para agregar el gráfico si es necesario.
-    
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), 'datos_con_grafico.xlsx');
 }
@@ -315,7 +277,7 @@ function generateChartFromFilteredData() {
         return;
     }
 
-    // El gráfico se genera a partir de TODOS los datos filtrados, no solo de la página actual.
+    
     let aggregatedData;
     if (valueCol === '__count__') {
         aggregatedData = filteredData.reduce((acc, row) => {
@@ -373,7 +335,7 @@ function toggleColumn(index, isVisible) {
         document.querySelectorAll(`[data-index='${index}']`).forEach(el => {
             el.classList.toggle("column-hidden", !isVisible);
         });
-        displayPage(); // Vuelve a dibujar la página actual con las columnas actualizadas
+        displayPage(); 
     }
 }
 
@@ -441,7 +403,6 @@ function applyLeftColumn(cfg, rerender) {
     });
 
     if (rerender) {
-        // Reinicia los filtros y la página para mostrar la nueva columna
         filteredData = [...fullData];
         currentPage = 1;
         displayPage();

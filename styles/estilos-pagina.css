@@ -1,51 +1,43 @@
 body {
     background-color: white;
-    /* Centramos el .content-wrapper en medio de la página */
     display: flex;
     justify-content: center;
     align-items: center;
-    
-    /* Importante para que las franjas no creen barras de scroll */
     overflow: hidden; 
-    position: relative; /* Contexto para posicionar las franjas */
+    position: relative; 
 }
 
-/* --- FRANGAS DIAGONALES DE FONDO --- */
 body::before,
 body::after {
     content: '';
     position: absolute;
     background-color: #ffc900;
-    width: 150%; /* Muy anchas para cubrir todo en diagonal */
-    height: 300px; /* El grosor de las franjas */
+    width: 150%; 
+    height: 300px;
     transform: rotate(-45deg);
-    z-index: -1; /* Detrás de todo el contenido */
+    z-index: -1;
 }
 
-/* Posición de la primera franja */
 body::before {
     top: 5%;
     left: -50%;
 }
 
-/* Posición de la segunda franja */
 body::after {
     bottom: 5%;
     right: -50%;
 }
 
-/* Contenedor que agrupa el logo, textos y botón */
 .content-wrapper {
     text-align: center;
     padding: 20px;
 }
 
-/* Caja cyan para el logo */
 .logo-wrapper {
     background-color: #1ee3cf;
     width: 110px;
     height: 110px;
-    border-radius: 25px; /* Bordes más redondeados */
+    border-radius: 25px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -54,20 +46,19 @@ body::after {
 }
 
 .logo {
-    width: 90px; /* Ajustamos el tamaño del logo dentro de la caja */
+    width: 90px;
 }
 
 h1 {
     font-size: 2.8em;
     font-weight: 700;
-    /* El color del título ahora es el amarillo */
     color: #000000; 
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.1); /* Sombra sutil */
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1); 
     margin: 0;
 }
 
 p {
-    color: #141313; /* Gris más claro para el subtítulo */
+    color: #141313;
     font-weight: 500;
     font-size: 1.1em;
     margin-top: 5px;
