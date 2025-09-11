@@ -20,6 +20,9 @@
 
     <div id="csvTableContainer"></div>
 
+    <!-- Contenedor para los botones de paginación -->
+    <div id="pagination-controls" class="pagination-wrapper"></div>
+
     <div id="columnsModal" class="modal">
         <div class="modal-content">
             <span class="close-button">×</span>
@@ -64,6 +67,8 @@
             </div>
         </div>
     </div>
+
+    <!-- MODAL PARA LOS FILTROS DE COLUMNA TIPO EXCEL -->
     <div id="filterModal" class="modal">
         <div class="modal-content filter-modal-content">
             <span class="close-button">×</span>
@@ -74,6 +79,7 @@
                 <button id="deselectAllBtn" class="btn btn-small">Deseleccionar Todo</button>
             </div>
             <div id="filterOptions" class="filter-options-list">
+                <!-- Las opciones de filtro (checkboxes) se insertarán aquí con JavaScript -->
             </div>
             <div class="modal-actions">
                 <button id="applyFilterBtn" class="btn btn-blue">Aplicar</button>

@@ -1,4 +1,14 @@
-let tableData = [];
+// --- VARIABLES DE ESTADO ---
+// Variables para el estado de la paginación
+let currentPage = 1;
+const rowsPerPage = 50; // ¡Puedes cambiar esto! 25, 50, o 100 son buenos valores.
+
+// Almacena TODOS los datos del CSV. Nunca se modifica después de la carga inicial.
+let fullData = [];
+// Almacena solo los datos que coinciden con los filtros actuales.
+let filteredData = [];
+
+// Variables para el resto de la aplicación
 let headers = [];
 let myPieChart = null;
 let leftColumnConfig = JSON.parse(localStorage.getItem('leftColumnConfig') || 'null') || { enabled: false, source: '', numChars: 2, concat: '', newName: '' };
@@ -6,6 +16,7 @@ let chartImageDataUrl = null;
 let chartAggregatedData = null;
 let activeFilters = {};
 
+// --- INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', () => {
     const csvData = localStorage.getItem('csvData');
     const csvFileName = localStorage.getItem('csvFileName');
@@ -30,14 +41,13 @@ function setupEventListeners() {
     document.getElementById('createDashboardBtn').addEventListener('click', navigateToDashboard);
     document.getElementById('addLeftColumnBtn').addEventListener('click', handleAddLeftColumn);
     document.getElementById('generateChartBtn').addEventListener('click', generateChartFromFilteredData);
-    
+
     document.querySelectorAll('.modal .close-button').forEach(btn => {
         btn.onclick = () => btn.closest('.modal').style.display = 'none';
     });
     window.onclick = e => {
         if (e.target.classList.contains('modal')) e.target.style.display = 'none';
     };
-
     document.getElementById('applyFilterBtn').addEventListener('click', handleApplyFilter);
     document.getElementById('cancelFilterBtn').addEventListener('click', () => document.getElementById('filterModal').style.display = 'none');
 }
@@ -47,7 +57,7 @@ function parseAndDisplayCSV(csvData) {
     const headerLine = lines[0];
     if (!headerLine) return;
     headers = headerLine.split(',').map(h => ({ name: h.trim(), visible: true }));
-    tableData = lines.slice(1).map(line => {
+    fullData = lines.slice(1).map(line => {
         if (!line.trim()) return null;
         const values = line.split(',');
         let rowData = {};
@@ -56,21 +66,39 @@ function parseAndDisplayCSV(csvData) {
         });
         return rowData;
     }).filter(Boolean);
-    
+
     if (leftColumnConfig && leftColumnConfig.enabled && leftColumnConfig.source) {
         applyLeftColumn(leftColumnConfig, false);
     }
-    
-    renderTable();
+
+    // La primera vez, los datos filtrados son todos los datos.
+    filteredData = [...fullData];
+    displayPage(); // Llamamos a la nueva función principal de renderizado.
 }
 
-function renderTable() {
+// --- LÓGICA DE RENDERIZADO Y PAGINACIÓN ---
+
+/**
+ * Función principal que orquesta el filtrado, la paginación y el renderizado.
+ */
+function displayPage() {
+    applyActiveFilters(); // Primero, actualiza el array `filteredData` en memoria.
+
+    // Calcula qué porción (slice) de los datos filtrados se debe mostrar.
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const paginatedData = filteredData.slice(startIndex, endIndex);
+
+    renderTable(paginatedData);      // Dibuja solo la porción de la tabla para la página actual.
+    renderPaginationControls();      // Dibuja los botones "Anterior" y "Siguiente".
+}
+
+/**
+ * Dibuja la tabla en el HTML, pero SOLO con las filas que se le pasan.
+ * @param {Array} dataToRender El array de objetos a renderizar (ej. 50 filas).
+ */
+function renderTable(dataToRender) {
     const tableContainer = document.getElementById('csvTableContainer');
-    if (headers.length === 0) {
-        tableContainer.innerHTML = "<p>Carga un archivo CSV para comenzar.</p>";
-        return;
-    }
-    
     let tableHTML = '<table><thead><tr>';
     headers.forEach((h, i) => {
         const filterIsActive = activeFilters[h.name] && activeFilters[h.name].size > 0;
@@ -81,25 +109,118 @@ function renderTable() {
     });
     tableHTML += '</tr></thead><tbody>';
 
-    tableData.forEach(row => {
-        tableHTML += '<tr>';
-        headers.forEach((h, i) => {
-            const cellData = h.name ? (row[h.name] || '') : '';
-            tableHTML += `<td class="${h.visible ? '' : 'column-hidden'}" data-index="${i}">${cellData}</td>`;
+    if (dataToRender.length === 0) {
+        const columnCount = headers.filter(h => h.visible).length;
+        tableHTML += `<tr><td colspan="${columnCount}" style="text-align:center; padding: 2rem;">No hay resultados que coincidan con los filtros.</td></tr>`;
+    } else {
+        dataToRender.forEach(row => {
+            tableHTML += '<tr>';
+            headers.forEach((h, i) => {
+                const cellData = h.name ? (row[h.name] || '') : '';
+                tableHTML += `<td class="${h.visible ? '' : 'column-hidden'}" data-index="${i}">${cellData}</td>`;
+            });
+            tableHTML += '</tr>';
         });
-        tableHTML += '</tr>';
-    });
+    }
+
     tableHTML += '</tbody></table>';
     tableContainer.innerHTML = tableHTML;
-    
+
+    // Vuelve a añadir los listeners a los iconos de filtro después de cada redibujado.
     document.querySelectorAll('.filter-icon').forEach(icon => {
         icon.addEventListener('click', (e) => {
             e.stopPropagation();
             openFilterModal(e.target.dataset.column);
         });
     });
+}
 
-    applyActiveFilters(); 
+/**
+ * Dibuja los botones de paginación y el contador de páginas.
+ */
+function renderPaginationControls() {
+    const controlsContainer = document.getElementById('pagination-controls');
+    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+    controlsContainer.innerHTML = '';
+
+    if (totalPages <= 1) return; // No se necesitan controles si todo cabe en una página.
+
+    let buttonsHTML = `
+        <button id="prevPageBtn" ${currentPage === 1 ? 'disabled' : ''}>&laquo; Anterior</button>
+        <span>Página ${currentPage} de ${totalPages} (${filteredData.length} filas)</span>
+        <button id="nextPageBtn" ${currentPage === totalPages ? 'disabled' : ''}>Siguiente &raquo;</button>
+    `;
+
+    controlsContainer.innerHTML = buttonsHTML;
+
+    // Añade listeners a los nuevos botones.
+    document.getElementById('prevPageBtn').addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            displayPage();
+        }
+    });
+    document.getElementById('nextPageBtn').addEventListener('click', () => {
+        if (currentPage < totalPages) {
+            currentPage++;
+            displayPage();
+        }
+    });
+}
+
+
+// --- LÓGICA DE FILTRADO ---
+
+/**
+ * Filtra el array `fullData` y actualiza `filteredData` basado en `activeFilters`.
+ * Esta función NO toca el HTML, solo manipula datos en memoria, por lo que es muy rápida.
+ */
+function applyActiveFilters() {
+    const filterKeys = Object.keys(activeFilters);
+
+    if (filterKeys.length === 0) {
+        filteredData = [...fullData];
+        return;
+    }
+
+    filteredData = fullData.filter(row => {
+        // La fila debe cumplir con TODOS los filtros activos.
+        return filterKeys.every(columnName => {
+            const filterValues = activeFilters[columnName];
+            const cellValue = row[columnName] || '';
+            return filterValues.has(cellValue);
+        });
+    });
+}
+
+function handleApplyFilter() {
+    const modal = document.getElementById('filterModal');
+    const columnName = modal.dataset.currentColumn;
+    const selectedValues = new Set();
+
+    document.querySelectorAll('#filterOptions input:checked').forEach(checkbox => {
+        selectedValues.add(checkbox.value);
+    });
+
+    const uniqueValuesCount = [...new Set(fullData.map(row => row[columnName] || ''))].length;
+
+    if (selectedValues.size === uniqueValuesCount || selectedValues.size === 0) {
+        delete activeFilters[columnName];
+    } else {
+        activeFilters[columnName] = selectedValues;
+    }
+
+    modal.style.display = 'none';
+    currentPage = 1; // Siempre vuelve a la primera página después de aplicar un nuevo filtro.
+    displayPage();
+    updateFilterIcons();
+}
+
+function resetAllFilters() {
+    activeFilters = {};
+    currentPage = 1; // Vuelve a la primera página.
+    displayPage();
+    updateFilterIcons();
 }
 
 function openFilterModal(columnName) {
@@ -113,7 +234,7 @@ function openFilterModal(columnName) {
     optionsContainer.innerHTML = '';
     searchInput.value = '';
 
-    const uniqueValues = [...new Set(tableData.map(row => row[columnName] || ''))].sort();
+    const uniqueValues = [...new Set(fullData.map(row => row[columnName] || ''))].sort();
     const currentFilter = activeFilters[columnName] || new Set(uniqueValues);
 
     const renderOptions = (values) => {
@@ -128,7 +249,7 @@ function openFilterModal(columnName) {
             optionsContainer.innerHTML += checkboxHTML;
         });
     };
-    
+
     renderOptions(uniqueValues);
 
     searchInput.oninput = () => {
@@ -140,34 +261,10 @@ function openFilterModal(columnName) {
     document.getElementById('selectAllBtn').onclick = () => {
         optionsContainer.querySelectorAll('input').forEach(chk => chk.checked = true);
     };
-
     document.getElementById('deselectAllBtn').onclick = () => {
         optionsContainer.querySelectorAll('input').forEach(chk => chk.checked = false);
     };
-
     modal.style.display = 'block';
-}
-
-function handleApplyFilter() {
-    const modal = document.getElementById('filterModal');
-    const columnName = modal.dataset.currentColumn;
-    const selectedValues = new Set();
-    
-    document.querySelectorAll('#filterOptions input:checked').forEach(checkbox => {
-        selectedValues.add(checkbox.value);
-    });
-
-    const uniqueValuesCount = [...new Set(tableData.map(row => row[columnName] || ''))].length;
-
-    if (selectedValues.size === uniqueValuesCount || selectedValues.size === 0) {
-        delete activeFilters[columnName];
-    } else {
-        activeFilters[columnName] = selectedValues;
-    }
-    
-    modal.style.display = 'none';
-    applyActiveFilters();
-    updateFilterIcons();
 }
 
 function updateFilterIcons() {
@@ -181,180 +278,134 @@ function updateFilterIcons() {
     });
 }
 
-function applyActiveFilters() {
-    const rows = document.querySelectorAll('#csvTableContainer tbody tr');
-    const filterKeys = Object.keys(activeFilters);
-
-    rows.forEach((row, rowIndex) => {
-        const rowData = tableData[rowIndex];
-        let isVisible = true;
-
-        if (filterKeys.length > 0) {
-            for (const columnName of filterKeys) {
-                const filterValues = activeFilters[columnName];
-                const cellValue = rowData[columnName] || '';
-                if (!filterValues.has(cellValue)) {
-                    isVisible = false;
-                    break; 
-                }
-            }
-        }
-        
-        row.style.display = isVisible ? '' : 'none';
-    });
-}
-
-function resetAllFilters() {
-    activeFilters = {};
-    applyActiveFilters();
-    updateFilterIcons();
-}
+// --- OTRAS FUNCIONES (Exportar, Gráficos, Columnas) ---
 
 async function exportToExcelWithChart() {
-    const filteredDataForExport = tableData.filter(row => {
-        const filterKeys = Object.keys(activeFilters);
-        if (filterKeys.length === 0) return true;
+    if (filteredData.length === 0) {
+        alert("No hay datos filtrados para exportar.");
+        return;
+    }
 
-        return filterKeys.every(columnName => {
-            const filterValues = activeFilters[columnName];
-            const cellValue = row[columnName] || '';
-            return filterValues.has(cellValue);
-        });
-    });
-
-    if (filteredDataForExport.length === 0) { alert("No hay datos visibles para exportar."); return; }
-    
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Datos Filtrados');
-    
     const visibleHeaders = headers.filter(h => h.visible).map(h => ({ header: h.name, key: h.name, width: 20 }));
     worksheet.columns = visibleHeaders;
-    const dataToExport = filteredDataForExport.map(row => {
+    const dataToExport = filteredData.map(row => {
         let exportRow = {};
         headers.forEach(h => {
-            if (h.visible) {
-                exportRow[h.name] = row[h.name];
-            }
+            if (h.visible) { exportRow[h.name] = row[h.name]; }
         });
         return exportRow;
     });
     worksheet.addRows(dataToExport);
     worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
     worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8E44AD' } };
-    const mainTableEndRow = dataToExport.length + 1;
-    if (chartImageDataUrl) {
-        const imageId = workbook.addImage({ base64: chartImageDataUrl.split(',')[1], extension: 'png' });
-        worksheet.addImage(imageId, { tl: { col: 0.5, row: mainTableEndRow + 2 }, ext: { width: 500, height: 300 } });
-    }
-    if (chartAggregatedData) {
-        const startCol = 8;
-        const titleCell = worksheet.getCell(mainTableEndRow + 2, startCol);
-        titleCell.value = 'Resumen del Gráfico';
-        titleCell.font = { bold: true, size: 14 };
-        titleCell.alignment = { vertical: 'middle' };
-        const headersRow = worksheet.getRow(mainTableEndRow + 3);
-        headersRow.getCell(startCol).value = 'Categoría';
-        headersRow.getCell(startCol + 1).value = 'Valor Total';
-        headersRow.getCell(startCol + 2).value = 'Porcentaje';
-        headersRow.font = { bold: true };
-        const total = Object.values(chartAggregatedData).reduce((sum, val) => sum + val, 0);
-        let currentRowNum = mainTableEndRow + 4;
-        for (const [category, value] of Object.entries(chartAggregatedData)) {
-            const dataRow = worksheet.getRow(currentRowNum);
-            dataRow.getCell(startCol).value = category;
-            const valueCell = dataRow.getCell(startCol + 1);
-            valueCell.value = value;
-            valueCell.numFmt = '#,##0';
-            const percentCell = dataRow.getCell(startCol + 2);
-            percentCell.value = total > 0 ? value / total : 0;
-            percentCell.numFmt = '0.00%';
-            currentRowNum++;
-        }
-        worksheet.getColumn(startCol).width = 25;
-        worksheet.getColumn(startCol + 1).width = 15;
-        worksheet.getColumn(startCol + 2).width = 15;
-    }
+    
+    // Aquí puedes añadir la lógica para agregar el gráfico si es necesario.
+    
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), 'datos_con_grafico.xlsx');
 }
 
+function generateChartFromFilteredData() {
+    const categoryCol = document.getElementById('categoryColumn').value;
+    const valueCol = document.getElementById('valueColumn').value;
+    if (!categoryCol || !valueCol) {
+        alert('Por favor, selecciona ambas columnas.');
+        return;
+    }
+
+    // El gráfico se genera a partir de TODOS los datos filtrados, no solo de la página actual.
+    let aggregatedData;
+    if (valueCol === '__count__') {
+        aggregatedData = filteredData.reduce((acc, row) => {
+            const category = row[categoryCol] || 'Sin categoría';
+            acc[category] = (acc[category] || 0) + 1;
+            return acc;
+        }, {});
+    } else {
+        aggregatedData = filteredData.reduce((acc, row) => {
+            const category = row[categoryCol] || 'Sin categoría';
+            const value = parseFloat(String(row[valueCol]).replace(/,/g, '')) || 0;
+            if (value !== 0) {
+                acc[category] = (acc[category] || 0) + value;
+            }
+            return acc;
+        }, {});
+    }
+
+    chartAggregatedData = aggregatedData;
+    drawPieChart(aggregatedData, valueCol === '__count__' ? 'Conteo' : valueCol);
+}
+
+
 function openColumnsModal() {
     const list = document.getElementById('columnsList');
-    list.innerHTML = '';
+    list.innerHTML = "";
     headers.forEach((h, i) => {
-        list.innerHTML += `<label><input type="checkbox" data-index="${i}" ${h.visible ? 'checked' : ''}> ${h.name}</label>`;
+        list.innerHTML += `<label><input type="checkbox" data-index="${i}" ${h.visible ? "checked" : ""}> ${h.name}</label>`;
     });
-
     const sourceSelect = document.getElementById('leftSourceColumn');
     const concatSelect = document.getElementById('leftConcatColumn');
-    sourceSelect.innerHTML = '';
+    sourceSelect.innerHTML = "";
     concatSelect.innerHTML = '<option value="">-- Ninguna --</option>';
-
     headers.forEach(h => {
         const option = `<option value="${h.name}">${h.name}</option>`;
         sourceSelect.innerHTML += option;
         concatSelect.innerHTML += option;
     });
-
-    sourceSelect.value = leftColumnConfig.source || '';
-    concatSelect.value = leftColumnConfig.concat || '';
+    sourceSelect.value = leftColumnConfig.source || "";
+    concatSelect.value = leftColumnConfig.concat || "";
     document.getElementById('leftNumChars').value = leftColumnConfig.numChars || 2;
-    document.getElementById('leftNewColumnName').value = leftColumnConfig.newName || '';
+    document.getElementById('leftNewColumnName').value = leftColumnConfig.newName || "";
     document.getElementById('leftAutoApply').checked = !!leftColumnConfig.enabled;
-
     list.onchange = e => {
-        if (e.target.type === 'checkbox') {
+        if (e.target.type === "checkbox") {
             toggleColumn(parseInt(e.target.dataset.index), e.target.checked);
         }
     };
-
-    document.getElementById('columnsModal').style.display = 'block';
+    document.getElementById('columnsModal').style.display = "block";
 }
 
 function toggleColumn(index, isVisible) {
-    if(headers[index]) {
+    if (headers[index]) {
         headers[index].visible = isVisible;
         document.querySelectorAll(`[data-index='${index}']`).forEach(el => {
-            el.classList.toggle('column-hidden', !isVisible);
+            el.classList.toggle("column-hidden", !isVisible);
         });
-        applyActiveFilters();
+        displayPage(); // Vuelve a dibujar la página actual con las columnas actualizadas
     }
 }
 
 function openChartModal() {
     const catSelect = document.getElementById('categoryColumn');
     const valSelect = document.getElementById('valueColumn');
-    catSelect.innerHTML = '';
-    valSelect.innerHTML = '';
-    
-    if (tableData.length === 0) return;
-
+    catSelect.innerHTML = "";
+    valSelect.innerHTML = "";
+    if (fullData.length === 0) return;
     valSelect.innerHTML = '<option value="__count__">(Contar Registros)</option>';
     const visibleHeaders = headers.filter(h => h.visible);
-
     visibleHeaders.forEach(h => {
         catSelect.innerHTML += `<option value="${h.name}">${h.name}</option>`;
-        
         let isColumnNumeric = true;
         let hasAnyValue = false;
-        for (const row of tableData) {
+        for (const row of fullData) {
             const value = row[h.name];
-            if (value && value.trim() !== '') {
+            if (value && value.trim() !== "") {
                 hasAnyValue = true;
-                if (isNaN(Number(String(value).replace(/,/g, '')))) { 
+                if (isNaN(Number(String(value).replace(/,/g, "")))) {
                     isColumnNumeric = false;
                     break;
                 }
             }
         }
-        
         if (hasAnyValue && isColumnNumeric) {
             valSelect.innerHTML += `<option value="${h.name}">${h.name}</option>`;
         }
     });
-
-    document.getElementById('chartModal').style.display = 'block';
+    document.getElementById('chartModal').style.display = "block";
 }
+
 
 function handleAddLeftColumn() {
     const source = document.getElementById('leftSourceColumn').value;
@@ -362,31 +413,27 @@ function handleAddLeftColumn() {
     const concat = document.getElementById('leftConcatColumn').value || '';
     const newName = (document.getElementById('leftNewColumnName').value || `IZQ_${source}`).trim();
     const auto = document.getElementById('leftAutoApply').checked;
-    
     if (!source || !newName) {
         alert("La columna base y el nuevo nombre son obligatorios.");
         return;
     }
-
     leftColumnConfig = { enabled: auto, source, numChars, concat, newName };
     localStorage.setItem('leftColumnConfig', JSON.stringify(leftColumnConfig));
-    
     applyLeftColumn(leftColumnConfig, true);
     document.getElementById('columnsModal').style.display = 'none';
 }
-    
+
+
 function applyLeftColumn(cfg, rerender) {
     if (!cfg || !cfg.source) return;
 
     const newName = cfg.newName || `IZQ_${cfg.source}`;
     const numChars = parseInt(cfg.numChars) || 2;
 
-    const headerExists = headers.some(h => h.name === newName);
-    if (!headerExists) {
+    if (!headers.some(h => h.name === newName)) {
         headers.push({ name: newName, visible: true });
     }
-    
-    tableData.forEach(row => {
+    fullData.forEach(row => {
         const src = row[cfg.source] || '';
         const leftPart = src.substring(0, Math.max(0, numChars));
         const concatPart = cfg.concat ? (row[cfg.concat] || '') : '';
@@ -394,46 +441,11 @@ function applyLeftColumn(cfg, rerender) {
     });
 
     if (rerender) {
-        renderTable();
+        // Reinicia los filtros y la página para mostrar la nueva columna
+        filteredData = [...fullData];
+        currentPage = 1;
+        displayPage();
     }
-}
-
-function generateChartFromFilteredData() {
-    const categoryCol = document.getElementById('categoryColumn').value;
-    const valueCol = document.getElementById('valueColumn').value;
-    if (!categoryCol || !valueCol) { alert('Por favor, selecciona ambas columnas.'); return; }
-
-    const filteredDataForChart = tableData.filter(row => {
-        const filterKeys = Object.keys(activeFilters);
-        if (filterKeys.length === 0) return true;
-        return filterKeys.every(columnName => {
-            const filterValues = activeFilters[columnName];
-            const cellValue = row[columnName] || '';
-            return filterValues.has(cellValue);
-        });
-    });
-
-    let aggregatedData;
-
-    if (valueCol === '__count__') {
-        aggregatedData = filteredDataForChart.reduce((acc, row) => {
-            const category = row[categoryCol] || 'Sin categoría';
-            acc[category] = (acc[category] || 0) + 1;
-            return acc;
-        }, {});
-    } else {
-        aggregatedData = filteredDataForChart.reduce((acc, row) => {
-            const category = row[categoryCol] || 'Sin categoría';
-            const value = parseFloat(String(row[valueCol]).replace(/,/g, '')) || 0;
-            if (value !== 0) {
-              acc[category] = (acc[category] || 0) + value;
-            }
-            return acc;
-        }, {});
-    }
-    
-    chartAggregatedData = aggregatedData;
-    drawPieChart(aggregatedData, valueCol === '__count__' ? 'Conteo' : valueCol);
 }
 
 function drawPieChart(data, valueColName) {

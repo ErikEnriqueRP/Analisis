@@ -93,6 +93,55 @@ table tbody tr:hover {
     display: none;
 }
 
+/* --- ESTILOS PARA LA PAGINACIÓN --- */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background-color: white;
+    box-shadow: var(--box-shadow);
+    border-radius: var(--border-radius);
+    flex-wrap: wrap;
+}
+
+.pagination-wrapper button {
+    background-color: var(--light-color);
+    color: var(--dark-color);
+    border: 1px solid #bdc3c7;
+    padding: 8px 12px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.pagination-wrapper button:hover {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.pagination-wrapper button.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    font-weight: bold;
+}
+
+.pagination-wrapper button:disabled {
+    background-color: #ecf0f1;
+    color: #bdc3c7;
+    cursor: not-allowed;
+    border-color: #ddd;
+}
+
+.pagination-wrapper span {
+    font-weight: bold;
+    color: #555;
+}
+
 /* --- Modales (Estilos Generales) --- */
 .modal {
     display: none;
@@ -191,36 +240,31 @@ hr {
 }
 
 /* --- ESTILOS MEJORADOS PARA EL MODAL "CREAR GRÁFICO" --- */
-
-/* 1. Hace que los controles se apilen verticalmente */
 .chart-controls {
     display: flex;
     flex-direction: column;
-    gap: 1.2rem; /* Espacio generoso entre cada control */
+    gap: 1.2rem;
 }
 
-/* 2. Estiliza las etiquetas para que sean claras y estén encima de su selector */
 .chart-controls label {
     font-weight: bold;
     color: #555;
-    display: block; /* Asegura que ocupe su propia línea */
-    margin-bottom: 6px; /* Pequeño espacio entre la etiqueta y el selector */
+    display: block;
+    margin-bottom: 6px;
 }
 
-/* 3. Estiliza los menús desplegables para que sean consistentes */
 .chart-controls select {
     width: 100%;
     padding: 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
     box-sizing: border-box;
-    background-color: white; /* Asegura un fondo blanco */
+    background-color: white;
 }
 
-/* 4. Da espacio y alinea el botón de generar */
 #generateChartBtn {
-    margin-top: 1rem; /* Espacio extra arriba del botón */
-    align-self: flex-start; /* Alinea el botón a la izquierda */
+    margin-top: 1rem;
+    align-self: flex-start;
 }
 
 
