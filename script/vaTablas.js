@@ -257,7 +257,6 @@ async function exportAllToExcel() {
     const workbook = new ExcelJS.Workbook();
 
     for (const tableObject of customTables) {
-        // Reemplaza caracteres inválidos para nombres de hojas en Excel
         const safeSheetName = tableObject.name.replace(/[\*\[\]\:\?\\\/]/g, '').substring(0, 31);
         const worksheet = workbook.addWorksheet(safeSheetName);
 
