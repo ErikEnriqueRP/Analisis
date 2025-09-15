@@ -15,8 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (csvData) {
         document.querySelector('h1').textContent = `Tabla de JIRAS: ${csvFileName || 'Archivo Cargado'}`;
-        parseAndDisplayCSV(csvData);
         setupEventListeners();
+        parseAndDisplayCSV(csvData);
     } else {
         const tableContainer = document.getElementById('csvTableContainer');
         const controls = document.querySelector('.controls-wrapper');
@@ -28,42 +28,169 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
     document.getElementById('resetFiltersBtn').addEventListener('click', resetAllFilters);
     document.getElementById('exportBtn').addEventListener('click', exportToExcelWithChart);
-    document.getElementById('manageColumnsBtn').addEventListener('click', openColumnsModal);
-    document.getElementById('createChartBtn').addEventListener('click', openChartModal);
-    document.getElementById('createDashboardBtn').addEventListener('click', navigateToDashboard);
-    document.getElementById('addLeftColumnBtn').addEventListener('click', handleAddLeftColumn);
-    document.getElementById('generateChartBtn').addEventListener('click', generateChartFromFilteredData);
-
-    document.querySelectorAll('.modal .close-button').forEach(btn => {
-        btn.onclick = () => btn.closest('.modal').style.display = 'none';
-    });
-    window.onclick = e => {
-        if (e.target.classList.contains('modal')) e.target.style.display = 'none';
-    };
+    document.getElementById('btn-gestionar-columnas').addEventListener('click', openColumnsModal);
+    document.getElementById('btn-crear-grafico').addEventListener('click', openChartModal);
+    document.getElementById('btn-crear-tablas-link').addEventListener('click', navigateToDashboard);
     document.getElementById('applyFilterBtn').addEventListener('click', handleApplyFilter);
     document.getElementById('cancelFilterBtn').addEventListener('click', () => document.getElementById('filterModal').style.display = 'none');
+
+     document.querySelectorAll('.dropdown-btn').forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.stopPropagation();
+            const content = this.nextElementSibling;
+            const isVisible = content.classList.contains('show');
+            closeAllDropdowns();
+            if (!isVisible) {
+                content.classList.add('show');
+            }
+        });
+    });
+    window.addEventListener('click', function(event) {
+        if (!event.target.matches('.dropdown-btn')) {
+            closeAllDropdowns();
+        }
+    });
+}
+function closeAllDropdowns() {
+    document.querySelectorAll('.dropdown-content').forEach(content => {
+        content.classList.remove('show');
+    });
 }
 
 function parseAndDisplayCSV(csvData) {
-    const lines = csvData.trim().split(/\r?\n/);
-    const headerLine = lines[0];
-    if (!headerLine) return;
-    headers = headerLine.split(',').map(h => ({ name: h.trim(), visible: true }));
-    fullData = lines.slice(1).map(line => {
-        if (!line.trim()) return null;
-        const values = line.split(',');
-        let rowData = {};
-        headers.forEach((header, index) => {
-            rowData[header.name] = values[index] ? values[index].trim() : '';
-        });
-        return rowData;
-    }).filter(Boolean);
+    fullData = []; 
+    headers = [];
 
-    if (leftColumnConfig && leftColumnConfig.enabled && leftColumnConfig.source) {
-        applyLeftColumn(leftColumnConfig, false);
+    Papa.parse(csvData, {
+        header: true,
+        skipEmptyLines: true,
+        chunk: function(results) {
+            fullData.push(...results.data); 
+            if (headers.length === 0) {
+                headers = results.meta.fields.map(h => ({ name: h.trim(), visible: true }));
+            }
+        },
+        complete: function() {
+            console.log("Parseo con Papa Parse completado! Filas totales:", fullData.length);
+            
+            if (leftColumnConfig && leftColumnConfig.enabled && leftColumnConfig.source) {
+                applyLeftColumn(leftColumnConfig, false);
+            }
+            
+            filteredData = [...fullData];
+            populateQuickFilters(); 
+            displayPage();
+        },
+        error: function(error) {
+            console.error("Error al parsear el CSV con Papa Parse:", error);
+            alert("Hubo un error al leer el archivo CSV.");
+        }
+    });
+}
+
+function populateQuickFilters() {
+    const filtersConfig = {
+        'ano': { 
+            containerId: 'quick-filter-ano', 
+            createdCol: 'Fecha_creada',
+            updatedCol: 'Fecha_actualizada'
+        },
+        'area': { containerId: 'quick-filter-area', column: 'Area' },
+        'prioridad': { containerId: 'quick-filter-prioridad', column: 'Prioridad' },
+        'estado': { containerId: 'quick-filter-estado', column: 'Estado' },
+        'resolucion': { containerId: 'quick-filter-resolucion', column: 'Resolucion' }
+    };
+    const anoContainer = document.getElementById(filtersConfig.ano.containerId);
+    if(anoContainer) {
+        anoContainer.innerHTML = '';
+
+        const createdColName = filtersConfig.ano.createdCol;
+        const updatedColName = filtersConfig.ano.updatedCol;
+        const getUniqueYears = (colName) => {
+            if (!headers.some(h => h.name === colName)) return [];
+            const yearSet = new Set();
+            fullData.forEach(row => {
+                const dateString = row[colName];
+                if (dateString && dateString.length >= 4) {
+                    const year = dateString.slice(-4);
+                    if (/^\d{4}$/.test(year)) {
+                        yearSet.add(year);
+                    }
+                }
+            });
+            return Array.from(yearSet).sort((a, b) => b - a); // Ordena de más reciente a más antiguo
+        };
+
+        const createdYears = getUniqueYears(createdColName);
+        const updatedYears = getUniqueYears(updatedColName);
+        if (createdYears.length > 0) {
+            const createdSubmenu = createSubmenu("Creada", createdYears, createdColName);
+            anoContainer.appendChild(createdSubmenu);
+        }
+        if (updatedYears.length > 0) {
+            const updatedSubmenu = createSubmenu("Actualizada", updatedYears, updatedColName);
+            anoContainer.appendChild(updatedSubmenu);
+        }
     }
-    filteredData = [...fullData];
-    displayPage(); 
+    ['area', 'prioridad', 'estado', 'resolucion'].forEach(key => {
+    });
+}
+function createSubmenu(title, years, columnName) {
+    const container = document.createElement('div');
+    container.className = 'submenu-container';
+
+    const titleLink = document.createElement('a');
+    titleLink.href = '#';
+    titleLink.textContent = title + ' ▶';
+    container.appendChild(titleLink);
+
+    const submenu = document.createElement('div');
+    submenu.className = 'submenu';
+
+    years.forEach(year => {
+        const yearLink = document.createElement('a');
+        yearLink.href = '#';
+        yearLink.textContent = year;
+        yearLink.onclick = () => applyQuickFilter(columnName, year, true); // true indica búsqueda parcial
+        submenu.appendChild(yearLink);
+    });
+
+    container.appendChild(submenu);
+    return container;
+}
+
+function applyQuickFilter(columnName, value, isSubstring = false) {
+    activeFilters = {}; 
+    const newFilter = new Set();
+    newFilter.add(value);
+    activeFilters[columnName] = newFilter;
+    applyActiveFilters(isSubstring);
+
+    currentPage = 1;
+    displayPage(true); 
+    updateFilterIcons();
+    closeAllDropdowns();
+}
+
+function applyActiveFilters(isSubstringSearch = false) {
+    const filterKeys = Object.keys(activeFilters);
+
+    if (filterKeys.length === 0) {
+        filteredData = [...fullData];
+        return;
+    }
+
+    filteredData = fullData.filter(row => {
+        return filterKeys.every(columnName => {
+            const filterValues = activeFilters[columnName];
+            const cellValue = row[columnName] || '';
+            if(isSubstringSearch) {
+                return cellValue.includes([...filterValues][0]);
+            } else {
+                return filterValues.has(cellValue);
+            }
+        });
+    });
 }
 
 function displayPage() {
@@ -75,7 +202,6 @@ function displayPage() {
     renderTable(paginatedData);      
     renderPaginationControls();      
 }
-
 
 function renderTable(dataToRender) {
     const tableContainer = document.getElementById('csvTableContainer');

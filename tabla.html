@@ -9,79 +9,48 @@
 </head>
 <body>
     <h1>Tabla de JIRAS</h1>
-
-    <div class="controls-wrapper">
-        <button id="manageColumnsBtn" class="btn btn-yellow">Gestionar Columnas</button>
-        <button id="createChartBtn" class="btn btn-blue">Crear Gráfico</button>
-        <button id="createDashboardBtn" class="btn btn-yellow">Crear Tablas</button>
-        <button id="resetFiltersBtn" class="btn btn-red">Limpiar Filtros</button>
-        <button id="exportBtn" class="btn btn-green">Exportar a Excel</button>
-    </div>
-
-    <div id="csvTableContainer"></div>
-    <div id="pagination-controls" class="pagination-wrapper"></div>
-
-    <div id="columnsModal" class="modal">
-        <div class="modal-content">
-            <span class="close-button">×</span>
-            <h2>Gestionar Columnas</h2>
-            <div id="columnsList"></div>
-            <hr>
-            <h3>Agregar columna con IZQUIERDA()</h3>
-            <div class="left-config">
-                <label>Columna base:
-                    <select id="leftSourceColumn"></select>
-                </label>
-                <label>Número de caracteres:
-                    <input type="number" id="leftNumChars" min="1" value="2">
-                </label>
-                <label>Columna para concatenar (opcional):
-                    <select id="leftConcatColumn"><option value="">-- Ninguna --</option></select>
-                </label>
-                <label>Nombre nueva columna:
-                    <input type="text" id="leftNewColumnName" placeholder="Ej: Area_IZQ">
-                </label>
-                <label class="auto-apply-label"><input type="checkbox" id="leftAutoApply"> Aplicar automáticamente al cargar</label>
-                <div class="left-actions">
-                    <button id="addLeftColumnBtn" class="btn btn-blue">Aplicar y Cerrar</button>
+    <nav class="navbar-controls">
+        <div class="navbar-left">
+            <div class="dropdown">
+                <button class="dropdown-btn">Tabla</button>
+                <div id="dropdown-tabla" class="dropdown-content">
+                    <a href="#" id="btn-gestionar-columnas">📊 Gestionar Columnas</a>
+                    <a href="#" id="btn-crear-grafico">📈 Crear Gráfico</a>
+                    <a href="#" id="btn-crear-tablas-link">📋 Crear Tablas (Dashboard)</a>
+                </div>
+            </div>
+            <div class="dropdown">
+                <button class="dropdown-btn">Filtros Rápidos</button>
+                <div id="dropdown-filtros" class="dropdown-content">
+                    <div class="submenu-container">
+                        <a href="#">Año ▶</a>
+                        <div class="submenu" id="quick-filter-ano"></div>
+                    </div>
+                    <div class="submenu-container">
+                        <a href="#">Área ▶</a>
+                        <div class="submenu" id="quick-filter-area"></div>
+                    </div>
+                    <div class="submenu-container">
+                        <a href="#">Prioridad ▶</a>
+                        <div class="submenu" id="quick-filter-prioridad"></div>
+                    </div>
+                    <div class="submenu-container">
+                        <a href="#">Estado ▶</a>
+                        <div class="submenu" id="quick-filter-estado"></div>
+                    </div>
+                    <div class="submenu-container">
+                        <a href="#">Resolución ▶</a>
+                        <div class="submenu" id="quick-filter-resolucion"></div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div id="chartModal" class="modal">
-        <div class="modal-content">
-            <span class="close-button">×</span>
-            <h2>Crear Gráfico de Pastel</h2>
-            <div class="chart-controls">
-                <label for="categoryColumn">Columna para Categorías:</label>
-                <select id="categoryColumn"></select>
-                <label for="valueColumn">Columna para Valores (numérica):</label>
-                <select id="valueColumn"></select>
-                <button id="generateChartBtn" class="btn btn-blue">Generar Gráfico</button>
-            </div>
-            <div class="chart-container">
-                <canvas id="pieChart"></canvas>
-            </div>
+        <div class="navbar-right">
+            <button id="resetFiltersBtn" class="btn btn-red">Limpiar Filtros</button>
+            <button id="exportBtn" class="btn btn-green">Exportar a Excel</button>
         </div>
-    </div>
-    <div id="filterModal" class="modal">
-        <div class="modal-content filter-modal-content">
-            <span class="close-button">×</span>
-            <h2 id="filterModalTitle">Filtrar Columna</h2>
-            <div class="filter-controls">
-                <input type="text" id="filterSearchInput" placeholder="Buscar valores...">
-                <button id="selectAllBtn" class="btn btn-small">Seleccionar Todo</button>
-                <button id="deselectAllBtn" class="btn btn-small">Deseleccionar Todo</button>
-            </div>
-            <div id="filterOptions" class="filter-options-list">
-            </div>
-            <div class="modal-actions">
-                <button id="applyFilterBtn" class="btn btn-blue">Aplicar</button>
-                <button id="cancelFilterBtn" class="btn btn-red">Cancelar</button>
-            </div>
-        </div>
-    </div>
+    </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
