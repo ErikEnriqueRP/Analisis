@@ -197,7 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'area': { containerId: 'quick-filter-area', column: 'Area' },
         'prioridad': { containerId: 'quick-filter-prioridad', column: 'Prioridad' },
         'estado': { containerId: 'quick-filter-estado', column: 'Estado' },
-        'resolucion': { containerId: 'quick-filter-resolucion', column: 'Resolucion' }
     };
 
     const anoContainer = document.getElementById(filtersConfig.ano.containerId);
