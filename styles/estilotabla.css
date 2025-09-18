@@ -393,3 +393,101 @@ th:hover .filter-icon {
     justify-content: flex-end; 
     margin-top: 1rem; 
 }
+
+.modal-options-list {
+    border: none;
+    padding: 0;
+}
+
+.accordion-year-header {
+    background-color: #f1f1f1;
+    color: #444;
+    cursor: pointer;
+    padding: 12px 18px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 16px;
+    transition: background-color 0.3s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ddd;
+}
+
+.accordion-year-header:hover, .accordion-year-header.active {
+    background-color: #e2e2e2;
+}
+
+.accordion-year-header span::before {
+    content: '▶';
+    font-size: 0.8em;
+    color: #777;
+    margin-right: 12px;
+    transition: transform 0.3s;
+}
+
+.accordion-year-header.active span::before {
+    transform: rotate(90deg);
+}
+
+.select-year-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+.select-year-btn:hover {
+    background: #0056b3;
+}
+
+.date-panel {
+    padding: 0 18px;
+    background-color: white;
+    max-height: 0; 
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    border-bottom: 1px solid #ddd;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); 
+    gap: 10px;
+}
+
+.date-panel.show {
+    max-height: 400px; 
+    padding: 18px;
+    overflow-y: auto;
+}
+
+.date-panel label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.filter-icon {
+    cursor: pointer;
+    font-size: 0.8em;
+    margin-left: 5px;
+    color: #ccc;
+    transition: color 0.2s;
+}
+
+.filter-icon:hover {
+    color: #888;
+}
+
+.filter-icon.active {
+    color: #3498db; 
+}
+
+.dropdown-content a.disabled {
+    color: #aaa; 
+    pointer-events: none;
+    text-decoration: line-through;
+    background-color: #f9f9f9; 
+}

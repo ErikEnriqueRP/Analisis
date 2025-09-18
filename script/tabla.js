@@ -150,23 +150,20 @@ function getFullYearFromString(dateString) {
     if (!dateString || typeof dateString !== 'string') {
         return null;
     }
-    const date = new Date(dateString.replace(/-/g, '/'));
-    if (!isNaN(date.getTime())) {
-        return date.getFullYear();
+    const parts = dateString.split(/[/ -]/);
+    if (parts.length < 3) {
+        return null;
     }
-    
-    const match = dateString.match(/\b(\d{4})\b/) || dateString.match(/\b(\d{2})\b/g)?.pop();
-    if (match) {
-        const yearNum = parseInt(match, 10);
-        if (yearNum > 50) { 
-            return 1900 + yearNum;
-        }
-        return 2000 + yearNum; 
+    const yearPart = parts[parts.length - 1];
+    const yearNum = parseInt(yearPart, 10);
+    if (isNaN(yearNum)) {
+        return null;
     }
-
-    return null;
+    if (yearPart.length === 2) {
+        return yearNum > 50 ? 1900 + yearNum : 2000 + yearNum;
+    }
+    return yearNum;
 }
-
     function createSubmenu(title, years, columnName) {
         const container = document.createElement('div');
         container.className = 'submenu-container';
@@ -186,19 +183,43 @@ function getFullYearFromString(dateString) {
         container.appendChild(submenu);
         return container;
     }
+    
+function updateFilterIcons() {
+    document.querySelectorAll('.filter-icon').forEach(icon => {        
+        const columnName = icon.dataset.column;
+        if (activeFilters[columnName] && activeFilters[columnName].size > 0) {
+            icon.classList.add('active');
+        } else {
+            icon.classList.remove('active');
+        }
+    });
+}
 
-    function applyQuickFilter(columnName, value, isSubstring = false) {
+    function applyQuickFilter(columnName, value) {
+    if (columnName.includes("Fecha_")) {
         const newFilter = new Set();
-        newFilter.add(value);
+        newFilter.add(value.toString());
         activeFilters[columnName] = newFilter;
-        
-        applyActiveFilters(isSubstring);
-        currentPage = 1;
-        displayPage();
-        updateFilterIcons();
-        closeAllDropdowns();
+    } else {
+        const currentFilter = activeFilters[columnName] || new Set();
+        if (currentFilter.has(value)) {
+            currentFilter.delete(value);
+        } else {
+            currentFilter.add(value);
+        }
+        activeFilters[columnName] = currentFilter;
+        if (currentFilter.size === 0) {
+            delete activeFilters[columnName];
+        }
     }
-
+    
+    applyActiveFilters();
+    currentPage = 1;
+    updateAvailableFilterOptions(); 
+    displayPage();
+    updateFilterIcons();
+    closeAllDropdowns();
+}
     function applyActiveFilters() {
     const filterKeys = Object.keys(activeFilters);
 
@@ -213,10 +234,17 @@ function getFullYearFromString(dateString) {
             if (filterValues.size === 0) return true;
             
             const cellValue = row[columnName] || '';
+
             if (columnName.includes("Fecha_")) {
-                const filterYear = parseInt([...filterValues][0], 10);
-                const cellYear = getFullYearFromString(cellValue);
-                return cellYear === filterYear;
+                const sampleValue = [...filterValues][0];
+
+                if (filterValues.size === 1 && /^\d{4}$/.test(sampleValue)) {
+                    const filterYear = parseInt(sampleValue, 10);
+                    const cellYear = getFullYearFromString(cellValue);
+                    return cellYear === filterYear;
+                } else {
+                    return filterValues.has(cellValue);
+                }
             } else {
                 return filterValues.has(cellValue);
             }
@@ -299,85 +327,166 @@ function getFullYearFromString(dateString) {
     }
 
     function handleApplyFilter() {
-        const modal = document.getElementById('filterModal');
-        const columnName = modal.dataset.currentColumn;
-        const selectedValues = new Set();
-        document.querySelectorAll('#filterOptions input:checked').forEach(checkbox => {
-            selectedValues.add(checkbox.value);
-        });
+    const modal = document.getElementById('filterModal');
+    const columnName = modal.dataset.currentColumn;
+    const selectedValues = new Set();
+    document.querySelectorAll('#filterOptions input:checked').forEach(checkbox => {
+        selectedValues.add(checkbox.value);
+    });
 
-        const uniqueValuesCount = [...new Set(fullData.map(row => row[columnName] || ''))].length;
-        if (selectedValues.size === uniqueValuesCount || selectedValues.size === 0) {
-            delete activeFilters[columnName];
-        } else {
-            activeFilters[columnName] = selectedValues;
-        }
-
-        modal.style.display = 'none';
-        currentPage = 1;
-        applyActiveFilters();
-        displayPage();
-        updateFilterIcons();
+    const uniqueValuesCount = [...new Set(fullData.map(row => row[columnName] || ''))].length;
+    if (selectedValues.size === uniqueValuesCount || selectedValues.size === 0) {
+        delete activeFilters[columnName];
+    } else {
+        activeFilters[columnName] = selectedValues;
     }
 
+    modal.style.display = 'none';
+    currentPage = 1;
+    applyActiveFilters();
+    updateAvailableFilterOptions(); 
+    displayPage();
+    updateFilterIcons();
+}
     function resetAllFilters() {
-        activeFilters = {};
-        currentPage = 1;
-        applyActiveFilters();
-        displayPage();
-        updateFilterIcons();
-    }
+    activeFilters = {};
+    currentPage = 1;
+    applyActiveFilters();
+    updateAvailableFilterOptions();
+    displayPage();
+    updateFilterIcons();
+}
+function updateAvailableFilterOptions() {
+    const quickFilterConfig = {
+        'area': 'Area',
+        'prioridad': 'Prioridad',
+        'estado': 'Estado',
+        'resolucion': 'Resolucion'
+    };
+    const availableOptions = {};
+    Object.values(quickFilterConfig).forEach(columnName => {
+        availableOptions[columnName] = new Set(filteredData.map(row => row[columnName]));
+    });
+    Object.keys(quickFilterConfig).forEach(key => {
+        const columnName = quickFilterConfig[key];
+        const container = document.getElementById(`quick-filter-${key}`);
+        
+        if (container) {
+            const links = container.getElementsByTagName('a');
+            for (let link of links) {
+                if (availableOptions[columnName].has(link.textContent)) {
+                    link.classList.remove('disabled');
+                } else {
+                    link.classList.add('disabled');
+                }
+            }
+        }
+    });
+}
 
     function openFilterModal(columnName) {
-        const modal = document.getElementById('filterModal');
-        const title = document.getElementById('filterModalTitle');
-        const optionsContainer = document.getElementById('filterOptions');
-        const searchInput = document.getElementById('filterSearchInput');
+    const modal = document.getElementById('filterModal');
+    const title = document.getElementById('filterModalTitle');
+    const optionsContainer = document.getElementById('filterOptions');
+    const searchInput = document.getElementById('filterSearchInput');
 
-        title.textContent = `Filtrar por: ${columnName}`;
-        modal.dataset.currentColumn = columnName;
-        optionsContainer.innerHTML = '';
-        searchInput.value = '';
+    title.textContent = `Filtrar por: ${columnName}`;
+    modal.dataset.currentColumn = columnName;
+    optionsContainer.innerHTML = '';
+    searchInput.value = '';
 
-        const uniqueValues = [...new Set(fullData.map(row => row[columnName] || ''))].sort();
-        const currentFilter = activeFilters[columnName] || new Set();
+    const currentFilter = activeFilters[columnName] || new Set();
 
-        const renderOptions = (values) => {
-            optionsContainer.innerHTML = '';
-            values.forEach(value => {
-                const isChecked = currentFilter.size === 0 || currentFilter.has(value);
-                optionsContainer.innerHTML += `
+    if (columnName.includes("Fecha_")) {
+        const groupedByYear = {};
+        fullData.forEach(row => {
+            const dateStr = row[columnName];
+            const year = getFullYearFromString(dateStr);
+            if (year && dateStr) {
+                if (!groupedByYear[year]) {
+                    groupedByYear[year] = new Set();
+                }
+                groupedByYear[year].add(dateStr);
+            }
+        });
+
+        const sortedYears = Object.keys(groupedByYear).sort((a, b) => b - a);
+
+        sortedYears.forEach(year => {
+            const yearWrapper = document.createElement('div');
+            yearWrapper.className = 'year-group';
+            
+            const header = document.createElement('button');
+            header.className = 'accordion-year-header';
+            header.innerHTML = `<span>${year}</span> <button class="select-year-btn">Seleccionar Año</button>`;
+            
+            const panel = document.createElement('div');
+            panel.className = 'date-panel';
+
+            const sortedDates = Array.from(groupedByYear[year]).sort((a, b) => new Date(a.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$2/$1/$3')) - new Date(b.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$2/$1/$3')));
+
+            sortedDates.forEach(date => {
+                const isChecked = currentFilter.size === 0 || currentFilter.has(date);
+                panel.innerHTML += `
                     <label>
-                        <input type="checkbox" value="${value}" ${isChecked ? 'checked' : ''}>
-                        ${value === '' ? '(Vacío)' : value}
+                        <input type="checkbox" value="${date}" ${isChecked ? 'checked' : ''}>
+                        ${date}
                     </label>`;
             });
-        };
 
-        renderOptions(uniqueValues);
+            yearWrapper.appendChild(header);
+            yearWrapper.appendChild(panel);
+            optionsContainer.appendChild(yearWrapper);
+        });
 
-        searchInput.oninput = () => {
-            const searchTerm = searchInput.value.toLowerCase();
-            const filteredValues = uniqueValues.filter(v => v.toLowerCase().includes(searchTerm));
-            renderOptions(filteredValues);
-        };
+        document.querySelectorAll('.accordion-year-header').forEach(header => {
+            header.querySelector('span').addEventListener('click', () => {
+                header.classList.toggle('active');
+                const panel = header.nextElementSibling;
+                panel.classList.toggle('show');
+            });
+        });
 
-        document.getElementById('selectAllBtn').onclick = () => optionsContainer.querySelectorAll('input').forEach(chk => chk.checked = true);
-        document.getElementById('deselectAllBtn').onclick = () => optionsContainer.querySelectorAll('input').forEach(chk => chk.checked = false);
-        modal.style.display = 'block';
-    }
+        document.querySelectorAll('.select-year-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                const panel = button.parentElement.nextElementSibling;
+                const checkboxes = panel.querySelectorAll('input[type="checkbox"]');
+                const shouldSelect = Array.from(checkboxes).filter(cb => cb.checked).length < checkboxes.length;
+                checkboxes.forEach(cb => cb.checked = shouldSelect);
+            });
+        });
 
-    function updateFilterIcons() {
-        document.querySelectorAll('.filter-icon').forEach(icon => {
-            const columnName = icon.dataset.column;
-            if (activeFilters[columnName] && activeFilters[columnName].size > 0) {
-                icon.classList.add('active');
-            } else {
-                icon.classList.remove('active');
-            }
+    } else {
+        const uniqueValues = [...new Set(fullData.map(row => row[columnName] || ''))].sort();
+        uniqueValues.forEach(value => {
+            const isChecked = currentFilter.size === 0 || currentFilter.has(value);
+            optionsContainer.innerHTML += `
+                <label>
+                    <input type="checkbox" value="${value}" ${isChecked ? 'checked' : ''}>
+                    ${value === '' ? '(Vacío)' : value}
+                </label>`;
         });
     }
 
+    searchInput.oninput = () => {
+        const searchTerm = searchInput.value.toLowerCase();
+        optionsContainer.querySelectorAll('label').forEach(label => {
+            const text = label.textContent.toLowerCase();
+            label.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+        if (columnName.includes("Fecha_")) {
+            optionsContainer.querySelectorAll('.year-group').forEach(group => {
+                const hasVisibleLabels = group.querySelector('label[style=""]');
+                group.style.display = hasVisibleLabels ? '' : 'none';
+            });
+        }
+    };
+
+    document.getElementById('selectAllBtn').onclick = () => optionsContainer.querySelectorAll('input[type="checkbox"]').forEach(chk => chk.checked = true);
+    document.getElementById('deselectAllBtn').onclick = () => optionsContainer.querySelectorAll('input[type="checkbox"]').forEach(chk => chk.checked = false);
+    modal.style.display = 'block';
+}
     async function exportToExcelWithChart() {
         if (filteredData.length === 0) {
             alert("No hay datos filtrados para exportar.");
