@@ -491,3 +491,11 @@ th:hover .filter-icon {
     text-decoration: line-through;
     background-color: #f9f9f9; 
 }
+.btn-blue {
+    background-color: #3498db;
+    color: white;
+}
+
+.btn-blue:hover {
+    background-color: #2980b9;
+}

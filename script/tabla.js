@@ -3,6 +3,8 @@ let fullData = [];
 let filteredData = [];
 let headers = [];
 const rowsPerPage = 100;
+let allColumnsVisible = false;
+const defaultVisibleColumns = ['Area','Clave de incidencia','Resumen','Prioridad','Estado','Creada','Actualizada'];
 
     function displayPage() {
         const startIndex = (currentPage - 1) * rowsPerPage;
@@ -10,6 +12,24 @@ const rowsPerPage = 100;
         const paginatedData = filteredData.slice(startIndex, endIndex);
         renderTable(paginatedData);
         renderPaginationControls();
+    }
+    
+    function toggleAllColumns() {
+    const showAllBtn = document.getElementById('showAllColumnsBtn');
+    
+    allColumnsVisible = !allColumnsVisible;
+
+    if (allColumnsVisible) {
+        headers.forEach(h => h.visible = true);
+        showAllBtn.textContent = 'Mostrar Predeterminadas';
+    } else {
+        headers.forEach(h => {
+            h.visible = defaultVisibleColumns.includes(h.name);
+        });
+        showAllBtn.textContent = 'Mostrar Todo';
+    }
+    
+    displayPage();
     }
     
     function renderTable(dataToRender) {
@@ -100,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function  setupEventListeners() {
         document.getElementById('resetFiltersBtn').addEventListener('click', resetAllFilters);
+        document.getElementById('showAllColumnsBtn').addEventListener('click', toggleAllColumns);
         document.getElementById('exportBtn').addEventListener('click', exportToExcelWithChart);
         document.getElementById('btn-gestionar-columnas').addEventListener('click', openColumnsModal);
         document.getElementById('btn-crear-grafico').addEventListener('click', openChartModal);
@@ -134,25 +155,40 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function  parseAndDisplayCSV(csvData) {
-        Papa.parse(csvData, {
-            header: true,
-            skipEmptyLines: true,
-            complete: function (results) {
-                headers = results.meta.fields.map(h => ({ name: h.trim(), visible: true }));
-                fullData = results.data;
-                if (leftColumnConfig && leftColumnConfig.enabled && leftColumnConfig.source) {
-                    applyLeftColumn(leftColumnConfig, false);
-                }
-                filteredData = [...fullData];
-                populateQuickFilters();
-                displayPage();
-            },
-            error: function (error) {
-                console.error("Error al parsear el CSV:", error);
-                alert("Hubo un error al leer el archivo CSV.");
+    function parseAndDisplayCSV(csvData) {
+    Papa.parse(csvData, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function (results) {
+            let originalHeaders = results.meta.fields;
+            fullData = results.data;
+
+            const numCharsForArea = 2;
+            const areaColumnName = 'Area';
+            const sourceColumnName = 'Resumen';
+
+            fullData.forEach(row => {
+                const sourceValue = row[sourceColumnName] || '';
+                row[areaColumnName] = sourceValue.substring(0, numCharsForArea);
+            });
+
+            if (!originalHeaders.includes(areaColumnName)) {
+                originalHeaders.unshift(areaColumnName);
             }
-        });
+
+            headers = originalHeaders.map(hName => ({
+                name: hName.trim(),
+                visible: defaultVisibleColumns.includes(hName.trim())
+            }));
+
+            filteredData = [...fullData];
+            
+            allColumnsVisible = false;
+            document.getElementById('showAllColumnsBtn').textContent = 'Mostrar Todo';
+            
+            displayPage();
+        }
+    });
     }
 
     function populateQuickFilters() {
