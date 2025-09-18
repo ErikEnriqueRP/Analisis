@@ -1,18 +1,86 @@
-document.addEventListener('DOMContentLoaded', () => {
-    let currentPage = 1;
-    const rowsPerPage = 100;
-    let fullData = [];
-    let filteredData = [];
-    let headers = [];
+let currentPage = 1;
+let fullData = [];
+let filteredData = [];
+let headers = [];
+const rowsPerPage = 100;
+
+    function displayPage() {
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const paginatedData = filteredData.slice(startIndex, endIndex);
+        renderTable(paginatedData);
+        renderPaginationControls();
+    }
+    
+    function renderTable(dataToRender) {
+        const tableContainer = document.getElementById('csvTableContainer');
+        if (!tableContainer) return;
+        let tableHTML = '<table><thead><tr>';
+        headers.forEach((h, i) => {
+            const filterIsActive = activeFilters[h.name] && activeFilters[h.name].size > 0;
+            tableHTML += `<th class="${h.visible ? '' : 'column-hidden'}" data-index="${i}">${h.name} <span class="filter-icon ${filterIsActive ? 'active' : ''}" data-column="${h.name}">▼</span></th>`;
+        });
+        tableHTML += '</tr></thead><tbody>';
+        if (dataToRender.length === 0) {
+            const columnCount = headers.filter(h => h.visible).length;
+            tableHTML += `<tr><td colspan="${columnCount}" style="text-align:center; padding: 2rem;">No hay resultados.</td></tr>`;
+        } else {
+            dataToRender.forEach(row => {
+                tableHTML += '<tr>';
+                headers.forEach((h, i) => {
+                    const cellData = h.name ? (row[h.name] || '') : '';
+                    tableHTML += `<td class="${h.visible ? '' : 'column-hidden'}" data-index="${i}">${cellData}</td>`;
+                });
+                tableHTML += '</tr>';
+            });
+        }
+        tableHTML += '</tbody></table>';
+        tableContainer.innerHTML = tableHTML;
+        document.querySelectorAll('.filter-icon').forEach(icon => {
+            icon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openFilterModal(e.target.dataset.column);
+            });
+        });
+    }
+
+    function renderPaginationControls() {
+        const controlsContainer = document.getElementById('pagination-controls');
+        if (!controlsContainer) return;
+        const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+        controlsContainer.innerHTML = '';
+
+        if (totalPages <= 1) return;
+
+        controlsContainer.innerHTML = `
+            <button id="prevPageBtn" ${currentPage === 1 ? 'disabled' : ''}>&laquo; Anterior</button>
+            <span>Página ${currentPage} de ${totalPages} (${filteredData.length} filas)</span>
+            <button id="nextPageBtn" ${currentPage === totalPages ? 'disabled' : ''}>Siguiente &raquo;</button>
+        `;
+
+        document.getElementById('prevPageBtn').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                displayPage();
+            }
+        });
+        document.getElementById('nextPageBtn').addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                displayPage();
+            }
+        });
+    }
+
+document.addEventListener('DOMContentLoaded', () => { 
     let myPieChart = null;
     let chartImageDataUrl = null;
-    let activeFilters = {};
 
     let leftColumnConfig = JSON.parse(localStorage.getItem('leftColumnConfig') || 'null') || {
         enabled: false, source: '', numChars: 2, concat: '', newName: ''
     };
 
-    function initialize() {
+    function  initialize() {
         const csvData = localStorage.getItem('csvData');
         const csvFileName = localStorage.getItem('csvFileName');
         const tableContainer = document.getElementById('csvTableContainer');
@@ -30,42 +98,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initialize();
 
-function setupEventListeners() {
-    document.getElementById('resetFiltersBtn').addEventListener('click', resetAllFilters);
-    document.getElementById('exportBtn').addEventListener('click', exportToExcelWithChart);
-    document.getElementById('btn-gestionar-columnas').addEventListener('click', openColumnsModal);
-    document.getElementById('btn-crear-grafico').addEventListener('click', openChartModal);
-    document.getElementById('btn-crear-tablas-link').addEventListener('click', navigateToDashboard);
+    function  setupEventListeners() {
+        document.getElementById('resetFiltersBtn').addEventListener('click', resetAllFilters);
+        document.getElementById('exportBtn').addEventListener('click', exportToExcelWithChart);
+        document.getElementById('btn-gestionar-columnas').addEventListener('click', openColumnsModal);
+        document.getElementById('btn-crear-grafico').addEventListener('click', openChartModal);
+        document.getElementById('btn-crear-tablas-link').addEventListener('click', navigateToDashboard);
 
-    const applyFilterBtn = document.getElementById('applyFilterBtn');
-    if (applyFilterBtn) applyFilterBtn.addEventListener('click', handleApplyFilter);
-    const cancelFilterBtn = document.getElementById('cancelFilterBtn');
-    if (cancelFilterBtn) cancelFilterBtn.addEventListener('click', () => document.getElementById('filterModal').style.display = 'none');
-    const generateChartBtn = document.getElementById('generateChartBtn');
-    if (generateChartBtn) {
-        generateChartBtn.addEventListener('click', generateChartFromFilteredData);
-    }
-    const applyLeftColumnBtn = document.getElementById('applyLeftColumnBtn');
-    if (applyLeftColumnBtn) {
-        applyLeftColumnBtn.addEventListener('click', handleAddLeftColumn);
-    }
-    document.querySelectorAll('.dropdown-btn').forEach(button => {
-        button.addEventListener('click', function (event) {
-            event.stopPropagation();
-            const content = this.nextElementSibling;
-            const isVisible = content.classList.contains('show');
-            closeAllDropdowns();
-            if (!isVisible) {
-                content.classList.add('show');
-            }
+        const applyFilterBtn = document.getElementById('applyFilterBtn');
+        if (applyFilterBtn) applyFilterBtn.addEventListener('click', handleApplyFilter);
+        const cancelFilterBtn = document.getElementById('cancelFilterBtn');
+        if (cancelFilterBtn) cancelFilterBtn.addEventListener('click', () => document.getElementById('filterModal').style.display = 'none');
+        const generateChartBtn = document.getElementById('generateChartBtn');
+        if (generateChartBtn) generateChartBtn.addEventListener('click', generateChartFromFilteredData);
+        const applyLeftColumnBtn = document.getElementById('applyLeftColumnBtn');
+        if (applyLeftColumnBtn) applyLeftColumnBtn.addEventListener('click', handleAddLeftColumn);
+        
+        document.querySelectorAll('.dropdown-btn').forEach(button => {
+            button.addEventListener('click', function (event) {
+                event.stopPropagation();
+                const content = this.nextElementSibling;
+                const isVisible = content.classList.contains('show');
+                closeAllDropdowns();
+                if (!isVisible) content.classList.add('show');
+            });
         });
-    });
-    window.addEventListener('click', function (event) {
-        if (!event.target.matches('.dropdown-btn')) {
-            closeAllDropdowns();
-        }
-    });
-}
+        window.addEventListener('click', function (event) {
+            if (!event.target.matches('.dropdown-btn')) closeAllDropdowns();
+        });
+    }
 
     function closeAllDropdowns() {
         document.querySelectorAll('.dropdown-content').forEach(content => {
@@ -73,18 +134,16 @@ function setupEventListeners() {
         });
     }
 
-    function parseAndDisplayCSV(csvData) {
+    function  parseAndDisplayCSV(csvData) {
         Papa.parse(csvData, {
             header: true,
             skipEmptyLines: true,
             complete: function (results) {
                 headers = results.meta.fields.map(h => ({ name: h.trim(), visible: true }));
                 fullData = results.data;
-
                 if (leftColumnConfig && leftColumnConfig.enabled && leftColumnConfig.source) {
                     applyLeftColumn(leftColumnConfig, false);
                 }
-
                 filteredData = [...fullData];
                 populateQuickFilters();
                 displayPage();
@@ -145,25 +204,8 @@ function setupEventListeners() {
             });
         }
     });
-}
-function getFullYearFromString(dateString) {
-    if (!dateString || typeof dateString !== 'string') {
-        return null;
     }
-    const parts = dateString.split(/[/ -]/);
-    if (parts.length < 3) {
-        return null;
-    }
-    const yearPart = parts[parts.length - 1];
-    const yearNum = parseInt(yearPart, 10);
-    if (isNaN(yearNum)) {
-        return null;
-    }
-    if (yearPart.length === 2) {
-        return yearNum > 50 ? 1900 + yearNum : 2000 + yearNum;
-    }
-    return yearNum;
-}
+
     function createSubmenu(title, years, columnName) {
         const container = document.createElement('div');
         container.className = 'submenu-container';
@@ -183,17 +225,6 @@ function getFullYearFromString(dateString) {
         container.appendChild(submenu);
         return container;
     }
-    
-function updateFilterIcons() {
-    document.querySelectorAll('.filter-icon').forEach(icon => {        
-        const columnName = icon.dataset.column;
-        if (activeFilters[columnName] && activeFilters[columnName].size > 0) {
-            icon.classList.add('active');
-        } else {
-            icon.classList.remove('active');
-        }
-    });
-}
 
     function applyQuickFilter(columnName, value) {
     if (columnName.includes("Fecha_")) {
@@ -219,135 +250,8 @@ function updateFilterIcons() {
     displayPage();
     updateFilterIcons();
     closeAllDropdowns();
-}
-    function applyActiveFilters() {
-    const filterKeys = Object.keys(activeFilters);
-
-    if (filterKeys.length === 0) {
-        filteredData = [...fullData];
-        return;
     }
 
-    filteredData = fullData.filter(row => {
-        return filterKeys.every(columnName => {
-            const filterValues = activeFilters[columnName];
-            if (filterValues.size === 0) return true;
-            
-            const cellValue = row[columnName] || '';
-
-            if (columnName.includes("Fecha_")) {
-                const sampleValue = [...filterValues][0];
-
-                if (filterValues.size === 1 && /^\d{4}$/.test(sampleValue)) {
-                    const filterYear = parseInt(sampleValue, 10);
-                    const cellYear = getFullYearFromString(cellValue);
-                    return cellYear === filterYear;
-                } else {
-                    return filterValues.has(cellValue);
-                }
-            } else {
-                return filterValues.has(cellValue);
-            }
-        });
-    });
-}
-
-    function displayPage() {
-        const startIndex = (currentPage - 1) * rowsPerPage;
-        const endIndex = startIndex + rowsPerPage;
-        const paginatedData = filteredData.slice(startIndex, endIndex);
-        renderTable(paginatedData);
-        renderPaginationControls();
-    }
-
-    function renderTable(dataToRender) {
-        const tableContainer = document.getElementById('csvTableContainer');
-        if (!tableContainer) return;
-
-        let tableHTML = '<table><thead><tr>';
-        headers.forEach((h, i) => {
-            const filterIsActive = activeFilters[h.name] && activeFilters[h.name].size > 0;
-            tableHTML += `<th class="${h.visible ? '' : 'column-hidden'}" data-index="${i}">
-                            ${h.name} 
-                            <span class="filter-icon ${filterIsActive ? 'active' : ''}" data-column="${h.name}">▼</span>
-                          </th>`;
-        });
-        tableHTML += '</tr></thead><tbody>';
-
-        if (dataToRender.length === 0) {
-            const columnCount = headers.filter(h => h.visible).length;
-            tableHTML += `<tr><td colspan="${columnCount}" style="text-align:center; padding: 2rem;">No hay resultados que coincidan con los filtros.</td></tr>`;
-        } else {
-            dataToRender.forEach(row => {
-                tableHTML += '<tr>';
-                headers.forEach((h, i) => {
-                    const cellData = h.name ? (row[h.name] || '') : '';
-                    tableHTML += `<td class="${h.visible ? '' : 'column-hidden'}" data-index="${i}">${cellData}</td>`;
-                });
-                tableHTML += '</tr>';
-            });
-        }
-        tableHTML += '</tbody></table>';
-        tableContainer.innerHTML = tableHTML;
-
-        document.querySelectorAll('.filter-icon').forEach(icon => {
-            icon.addEventListener('click', (e) => {
-                e.stopPropagation();
-                openFilterModal(e.target.dataset.column);
-            });
-        });
-    }
-
-    function renderPaginationControls() {
-        const controlsContainer = document.getElementById('pagination-controls');
-        if (!controlsContainer) return;
-        const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-        controlsContainer.innerHTML = '';
-
-        if (totalPages <= 1) return;
-
-        controlsContainer.innerHTML = `
-            <button id="prevPageBtn" ${currentPage === 1 ? 'disabled' : ''}>&laquo; Anterior</button>
-            <span>Página ${currentPage} de ${totalPages} (${filteredData.length} filas)</span>
-            <button id="nextPageBtn" ${currentPage === totalPages ? 'disabled' : ''}>Siguiente &raquo;</button>
-        `;
-
-        document.getElementById('prevPageBtn').addEventListener('click', () => {
-            if (currentPage > 1) {
-                currentPage--;
-                displayPage();
-            }
-        });
-        document.getElementById('nextPageBtn').addEventListener('click', () => {
-            if (currentPage < totalPages) {
-                currentPage++;
-                displayPage();
-            }
-        });
-    }
-
-    function handleApplyFilter() {
-    const modal = document.getElementById('filterModal');
-    const columnName = modal.dataset.currentColumn;
-    const selectedValues = new Set();
-    document.querySelectorAll('#filterOptions input:checked').forEach(checkbox => {
-        selectedValues.add(checkbox.value);
-    });
-
-    const uniqueValuesCount = [...new Set(fullData.map(row => row[columnName] || ''))].length;
-    if (selectedValues.size === uniqueValuesCount || selectedValues.size === 0) {
-        delete activeFilters[columnName];
-    } else {
-        activeFilters[columnName] = selectedValues;
-    }
-
-    modal.style.display = 'none';
-    currentPage = 1;
-    applyActiveFilters();
-    updateAvailableFilterOptions(); 
-    displayPage();
-    updateFilterIcons();
-}
     function resetAllFilters() {
     activeFilters = {};
     currentPage = 1;
@@ -355,138 +259,8 @@ function updateFilterIcons() {
     updateAvailableFilterOptions();
     displayPage();
     updateFilterIcons();
-}
-function updateAvailableFilterOptions() {
-    const quickFilterConfig = {
-        'area': 'Area',
-        'prioridad': 'Prioridad',
-        'estado': 'Estado',
-        'resolucion': 'Resolucion'
-    };
-    const availableOptions = {};
-    Object.values(quickFilterConfig).forEach(columnName => {
-        availableOptions[columnName] = new Set(filteredData.map(row => row[columnName]));
-    });
-    Object.keys(quickFilterConfig).forEach(key => {
-        const columnName = quickFilterConfig[key];
-        const container = document.getElementById(`quick-filter-${key}`);
-        
-        if (container) {
-            const links = container.getElementsByTagName('a');
-            for (let link of links) {
-                if (availableOptions[columnName].has(link.textContent)) {
-                    link.classList.remove('disabled');
-                } else {
-                    link.classList.add('disabled');
-                }
-            }
-        }
-    });
-}
-
-    function openFilterModal(columnName) {
-    const modal = document.getElementById('filterModal');
-    const title = document.getElementById('filterModalTitle');
-    const optionsContainer = document.getElementById('filterOptions');
-    const searchInput = document.getElementById('filterSearchInput');
-
-    title.textContent = `Filtrar por: ${columnName}`;
-    modal.dataset.currentColumn = columnName;
-    optionsContainer.innerHTML = '';
-    searchInput.value = '';
-
-    const currentFilter = activeFilters[columnName] || new Set();
-
-    if (columnName.includes("Fecha_")) {
-        const groupedByYear = {};
-        fullData.forEach(row => {
-            const dateStr = row[columnName];
-            const year = getFullYearFromString(dateStr);
-            if (year && dateStr) {
-                if (!groupedByYear[year]) {
-                    groupedByYear[year] = new Set();
-                }
-                groupedByYear[year].add(dateStr);
-            }
-        });
-
-        const sortedYears = Object.keys(groupedByYear).sort((a, b) => b - a);
-
-        sortedYears.forEach(year => {
-            const yearWrapper = document.createElement('div');
-            yearWrapper.className = 'year-group';
-            
-            const header = document.createElement('button');
-            header.className = 'accordion-year-header';
-            header.innerHTML = `<span>${year}</span> <button class="select-year-btn">Seleccionar Año</button>`;
-            
-            const panel = document.createElement('div');
-            panel.className = 'date-panel';
-
-            const sortedDates = Array.from(groupedByYear[year]).sort((a, b) => new Date(a.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$2/$1/$3')) - new Date(b.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$2/$1/$3')));
-
-            sortedDates.forEach(date => {
-                const isChecked = currentFilter.size === 0 || currentFilter.has(date);
-                panel.innerHTML += `
-                    <label>
-                        <input type="checkbox" value="${date}" ${isChecked ? 'checked' : ''}>
-                        ${date}
-                    </label>`;
-            });
-
-            yearWrapper.appendChild(header);
-            yearWrapper.appendChild(panel);
-            optionsContainer.appendChild(yearWrapper);
-        });
-
-        document.querySelectorAll('.accordion-year-header').forEach(header => {
-            header.querySelector('span').addEventListener('click', () => {
-                header.classList.toggle('active');
-                const panel = header.nextElementSibling;
-                panel.classList.toggle('show');
-            });
-        });
-
-        document.querySelectorAll('.select-year-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                e.stopPropagation(); 
-                const panel = button.parentElement.nextElementSibling;
-                const checkboxes = panel.querySelectorAll('input[type="checkbox"]');
-                const shouldSelect = Array.from(checkboxes).filter(cb => cb.checked).length < checkboxes.length;
-                checkboxes.forEach(cb => cb.checked = shouldSelect);
-            });
-        });
-
-    } else {
-        const uniqueValues = [...new Set(fullData.map(row => row[columnName] || ''))].sort();
-        uniqueValues.forEach(value => {
-            const isChecked = currentFilter.size === 0 || currentFilter.has(value);
-            optionsContainer.innerHTML += `
-                <label>
-                    <input type="checkbox" value="${value}" ${isChecked ? 'checked' : ''}>
-                    ${value === '' ? '(Vacío)' : value}
-                </label>`;
-        });
     }
 
-    searchInput.oninput = () => {
-        const searchTerm = searchInput.value.toLowerCase();
-        optionsContainer.querySelectorAll('label').forEach(label => {
-            const text = label.textContent.toLowerCase();
-            label.style.display = text.includes(searchTerm) ? '' : 'none';
-        });
-        if (columnName.includes("Fecha_")) {
-            optionsContainer.querySelectorAll('.year-group').forEach(group => {
-                const hasVisibleLabels = group.querySelector('label[style=""]');
-                group.style.display = hasVisibleLabels ? '' : 'none';
-            });
-        }
-    };
-
-    document.getElementById('selectAllBtn').onclick = () => optionsContainer.querySelectorAll('input[type="checkbox"]').forEach(chk => chk.checked = true);
-    document.getElementById('deselectAllBtn').onclick = () => optionsContainer.querySelectorAll('input[type="checkbox"]').forEach(chk => chk.checked = false);
-    modal.style.display = 'block';
-}
     async function exportToExcelWithChart() {
         if (filteredData.length === 0) {
             alert("No hay datos filtrados para exportar.");
@@ -548,6 +322,48 @@ function updateAvailableFilterOptions() {
         drawPieChart(aggregatedData, valueCol === '__count__' ? 'Conteo' : valueCol);
     }
 
+    function drawPieChart(data, valueColName) {
+        const canvas = document.getElementById('pieChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (myPieChart) myPieChart.destroy();
+
+        myPieChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(data),
+                datasets: [{
+                    label: valueColName,
+                    data: Object.values(data),
+                    backgroundColor: ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    onComplete: () => { if (myPieChart) chartImageDataUrl = myPieChart.toBase64Image('image/png'); }
+                },
+                plugins: {
+                    legend: { position: 'right' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                let value = context.raw || 0;
+                                let total = context.chart.getDatasetMeta(0).total || 1;
+                                let percentage = (value / total * 100).toFixed(2);
+                                return `${label}: ${value.toLocaleString()} (${percentage}%)`;
+                            }
+                        }
+                    },
+                    datalabels: { display: false }
+                }
+            }
+        });
+    }
+
     function openColumnsModal() {
         const list = document.getElementById('columnsList');
         list.innerHTML = "";
@@ -585,24 +401,7 @@ function updateAvailableFilterOptions() {
             displayPage();
         }
     }
-
-    function openChartModal() {
-        const catSelect = document.getElementById('categoryColumn');
-        const valSelect = document.getElementById('valueColumn');
-        catSelect.innerHTML = "";
-        valSelect.innerHTML = '<option value="__count__">(Contar Registros)</option>';
-
-        const visibleHeaders = headers.filter(h => h.visible);
-        visibleHeaders.forEach(h => {
-            catSelect.innerHTML += `<option value="${h.name}">${h.name}</option>`;
-            let isNumeric = fullData.some(row => row[h.name] && !isNaN(Number(String(row[h.name]).replace(/,/g, ""))));
-            if (isNumeric) {
-                valSelect.innerHTML += `<option value="${h.name}">${h.name}</option>`;
-            }
-        });
-        document.getElementById('chartModal').style.display = "block";
-    }
-
+    
     function handleAddLeftColumn() {
         leftColumnConfig = {
             enabled: document.getElementById('leftAutoApply').checked,
@@ -644,46 +443,21 @@ function updateAvailableFilterOptions() {
         }
     }
 
-    function drawPieChart(data, valueColName) {
-        const canvas = document.getElementById('pieChart');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (myPieChart) myPieChart.destroy();
+    function openChartModal() {
+        const catSelect = document.getElementById('categoryColumn');
+        const valSelect = document.getElementById('valueColumn');
+        catSelect.innerHTML = "";
+        valSelect.innerHTML = '<option value="__count__">(Contar Registros)</option>';
 
-        myPieChart = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: Object.keys(data),
-                datasets: [{
-                    label: valueColName,
-                    data: Object.values(data),
-                    backgroundColor: ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'],
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: {
-                    onComplete: () => { if (myPieChart) chartImageDataUrl = myPieChart.toBase64Image('image/png'); }
-                },
-                plugins: {
-                    legend: { position: 'right' },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.label || '';
-                                let value = context.raw || 0;
-                                let total = context.chart.getDatasetMeta(0).total || 1;
-                                let percentage = (value / total * 100).toFixed(2);
-                                return `${label}: ${value.toLocaleString()} (${percentage}%)`;
-                            }
-                        }
-                    },
-                    datalabels: { display: false }
-                }
+        const visibleHeaders = headers.filter(h => h.visible);
+        visibleHeaders.forEach(h => {
+            catSelect.innerHTML += `<option value="${h.name}">${h.name}</option>`;
+            let isNumeric = fullData.some(row => row[h.name] && !isNaN(Number(String(row[h.name]).replace(/,/g, ""))));
+            if (isNumeric) {
+                valSelect.innerHTML += `<option value="${h.name}">${h.name}</option>`;
             }
         });
+        document.getElementById('chartModal').style.display = "block";
     }
 
     function navigateToDashboard() {
