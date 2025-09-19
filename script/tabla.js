@@ -92,6 +92,15 @@ const defaultVisibleColumns = ['Area','Clave de incidencia','Resumen','Prioridad
         });
     }
 
+    function closeAllDropdowns() {
+        document.querySelectorAll('.dropdown-content').forEach(content => {
+            content.classList.remove('show');
+            });
+        document.querySelectorAll('.submenu').forEach(submenu => {
+        submenu.classList.remove('show-submenu');
+    });
+    }
+
 document.addEventListener('DOMContentLoaded', () => { 
     let myPieChart = null;
     let chartImageDataUrl = null;
@@ -149,12 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function closeAllDropdowns() {
-        document.querySelectorAll('.dropdown-content').forEach(content => {
-            content.classList.remove('show');
-        });
-    }
-
     function parseAndDisplayCSV(csvData) {
     Papa.parse(csvData, {
         header: true,
@@ -185,115 +188,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             allColumnsVisible = false;
             document.getElementById('showAllColumnsBtn').textContent = 'Mostrar Todo';
+
+            populateQuickFilters();
+            
+            setupSubmenuToggles();
             
             displayPage();
         }
     });
-    }
-
-    function populateQuickFilters() {
-    const filtersConfig = {
-        'ano': { containerId: 'quick-filter-ano', createdCol: 'Fecha_creada', updatedCol: 'Fecha_actualizada' },
-        'area': { containerId: 'quick-filter-area', column: 'Area' },
-        'prioridad': { containerId: 'quick-filter-prioridad', column: 'Prioridad' },
-        'estado': { containerId: 'quick-filter-estado', column: 'Estado' },
-    };
-
-    const anoContainer = document.getElementById(filtersConfig.ano.containerId);
-    if (anoContainer) {
-        anoContainer.innerHTML = '';
-        const createdColName = filtersConfig.ano.createdCol;
-        const updatedColName = filtersConfig.ano.updatedCol; 
-        
-        const getUniqueYears = (colName) => {
-            if (!headers.some(h => h.name === colName)) return [];
-            const yearSet = new Set();
-            fullData.forEach(row => {
-                const year = getFullYearFromString(row[colName]);
-                if (year) {
-                    yearSet.add(year);
-                }
-            });
-            return Array.from(yearSet).sort((a, b) => b - a);
-        };
-
-        const createdYears = getUniqueYears(createdColName);
-        const updatedYears = getUniqueYears(updatedColName);
-        if (createdYears.length > 0) anoContainer.appendChild(createSubmenu("Creada", createdYears, createdColName));
-        if (updatedYears.length > 0) anoContainer.appendChild(createSubmenu("Actualizada", updatedYears, updatedColName));
-    }
-    ['area', 'prioridad', 'estado', 'resolucion'].forEach(key => {
-        const config = filtersConfig[key];
-        const container = document.getElementById(config.containerId);
-        if (container && headers.some(h => h.name === config.column)) {
-            container.innerHTML = '';
-            const uniqueValues = [...new Set(fullData.map(row => row[config.column] || ''))].sort();
-            uniqueValues.forEach(value => {
-                if (value) {
-                    const link = document.createElement('a');
-                    link.href = '#';
-                    link.textContent = value;
-                    link.onclick = () => applyQuickFilter(config.column, value);
-                    container.appendChild(link);
-                }
-            });
-        }
-    });
-    }
-
-    function createSubmenu(title, years, columnName) {
-        const container = document.createElement('div');
-        container.className = 'submenu-container';
-        const titleLink = document.createElement('a');
-        titleLink.href = '#';
-        titleLink.textContent = title + ' ▶';
-        container.appendChild(titleLink);
-        const submenu = document.createElement('div');
-        submenu.className = 'submenu';
-        years.forEach(year => {
-            const yearLink = document.createElement('a');
-            yearLink.href = '#';
-            yearLink.textContent = year;
-            yearLink.onclick = () => applyQuickFilter(columnName, year, true);
-            submenu.appendChild(yearLink);
-        });
-        container.appendChild(submenu);
-        return container;
-    }
-
-    function applyQuickFilter(columnName, value) {
-    if (columnName.includes("Fecha_")) {
-        const newFilter = new Set();
-        newFilter.add(value.toString());
-        activeFilters[columnName] = newFilter;
-    } else {
-        const currentFilter = activeFilters[columnName] || new Set();
-        if (currentFilter.has(value)) {
-            currentFilter.delete(value);
-        } else {
-            currentFilter.add(value);
-        }
-        activeFilters[columnName] = currentFilter;
-        if (currentFilter.size === 0) {
-            delete activeFilters[columnName];
-        }
-    }
-    
-    applyActiveFilters();
-    currentPage = 1;
-    updateAvailableFilterOptions(); 
-    displayPage();
-    updateFilterIcons();
-    closeAllDropdowns();
-    }
-
-    function resetAllFilters() {
-    activeFilters = {};
-    currentPage = 1;
-    applyActiveFilters();
-    updateAvailableFilterOptions();
-    displayPage();
-    updateFilterIcons();
     }
 
     async function exportToExcelWithChart() {
