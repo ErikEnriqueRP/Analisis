@@ -126,6 +126,13 @@ h1 {
     position: relative;
 }
 
+.dropdown-content a.disabled {
+    color: #aaa; 
+    pointer-events: none;
+    text-decoration: line-through;
+    background-color: #f9f9f9; 
+}
+
 .submenu {
     display: none; 
     position: absolute;

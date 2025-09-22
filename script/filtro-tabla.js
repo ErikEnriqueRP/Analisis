@@ -31,10 +31,23 @@ function openFilterModal(columnName) {
     searchInput.value = '';
 
     const currentFilter = activeFilters[columnName] || new Set();
+    const otherFilterKeys = Object.keys(activeFilters).filter(k => k !== columnName);
+
+    let sourceData = fullData;
+
+    if (otherFilterKeys.length > 0) {
+        sourceData = fullData.filter(row => {
+            return otherFilterKeys.every(key => {
+                const filterValues = activeFilters[key];
+                const cellValue = row[key] || '';
+                return filterValues.has(cellValue);
+            });
+        });
+    }
 
     if (columnName.toLowerCase() === "creada" || columnName.toLowerCase() === "actualizada") {
         const groupedByYear = {};
-        fullData.forEach(row => {
+        sourceData.forEach(row => {
             const dateStr = row[columnName];
             const year = getFullYearFromString(dateStr);
             if (year && dateStr) {
@@ -46,19 +59,15 @@ function openFilterModal(columnName) {
         });
 
         const sortedYears = Object.keys(groupedByYear).sort((a, b) => b - a);
-
         sortedYears.forEach(year => {
             const yearWrapper = document.createElement('div');
             yearWrapper.className = 'year-group';
-            
             const header = document.createElement('button');
             header.className = 'accordion-year-header';
             header.innerHTML = `<span>${year}</span> <button class="select-year-btn">Seleccionar Año</button>`;
-            
             const panel = document.createElement('div');
             panel.className = 'date-panel';
-
-            const sortedDates = Array.from(groupedByYear[year]).sort((a, b) => new Date(a.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$2/$1/$3')) - new Date(b.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$2/$1/$3')));
+            const sortedDates = Array.from(groupedByYear[year]).sort((a, b) => new Date(a.split('/').reverse().join('-')) - new Date(b.split('/').reverse().join('-')));
 
             sortedDates.forEach(date => {
                 const isChecked = currentFilter.size === 0 || currentFilter.has(date);
@@ -73,8 +82,7 @@ function openFilterModal(columnName) {
         document.querySelectorAll('.accordion-year-header').forEach(header => {
             header.querySelector('span').addEventListener('click', () => {
                 header.classList.toggle('active');
-                const panel = header.nextElementSibling;
-                panel.classList.toggle('show');
+                header.nextElementSibling.classList.toggle('show');
             });
         });
 
@@ -83,26 +91,28 @@ function openFilterModal(columnName) {
                 e.stopPropagation();
                 const panel = button.parentElement.nextElementSibling;
                 const checkboxes = panel.querySelectorAll('input[type="checkbox"]');
-                const shouldSelect = Array.from(checkboxes).filter(cb => cb.checked).length < checkboxes.length;
+                const shouldSelect = Array.from(checkboxes).some(cb => !cb.checked);
                 checkboxes.forEach(cb => cb.checked = shouldSelect);
             });
         });
 
     } else {
-        const uniqueValues = [...new Set(fullData.map(row => row[columnName] || ''))].sort();
-        uniqueValues.forEach(value => {
-            const isChecked = currentFilter.size === 0 || currentFilter.has(value);
-            optionsContainer.innerHTML += `<label><input type="checkbox" value="${value}" ${isChecked ? 'checked' : ''}>${value === '' ? '(Vacío)' : value}</label>`;
-        });
+        const uniqueValues = [...new Set(sourceData.map(row => row[columnName] || ''))].sort();
+        if (uniqueValues.length === 0) {
+            optionsContainer.innerHTML = '<p style="text-align:center; color:#888;">No hay opciones disponibles con los filtros actuales.</p>';
+        } else {
+            uniqueValues.forEach(value => {
+                const isChecked = currentFilter.size === 0 || currentFilter.has(value);
+                optionsContainer.innerHTML += `<label><input type="checkbox" value="${value}" ${isChecked ? 'checked' : ''}>${value === '' ? '(Vacío)' : value}</label>`;
+            });
+        }
     }
 
     searchInput.oninput = () => {
         const searchTerm = searchInput.value.toLowerCase();
         optionsContainer.querySelectorAll('label').forEach(label => {
-            const text = label.textContent.toLowerCase();
-            label.style.display = text.includes(searchTerm) ? '' : 'none';
+            label.style.display = label.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
         });
-
         if (columnName.toLowerCase() === "creada" || columnName.toLowerCase() === "actualizada") {
             optionsContainer.querySelectorAll('.year-group').forEach(group => {
                 const hasVisibleLabels = group.querySelector('label[style=""]');
@@ -168,36 +178,6 @@ function applyActiveFilters() {
                 return filterValues.has(cellValue);
             }
         });
-    });
-}
-
-function updateAvailableFilterOptions() {
-    const quickFilterConfig = {
-        'area': 'Area',
-        'prioridad': 'Prioridad',
-        'estado': 'Estado',
-        'resolucion': 'Resolucion'
-    };
-    const availableOptions = {};
-    Object.values(quickFilterConfig).forEach(columnName => {
-        if(headers.some(h => h.name === columnName)) {
-            availableOptions[columnName] = new Set(filteredData.map(row => row[columnName]));
-        }
-    });
-    Object.keys(quickFilterConfig).forEach(key => {
-        const columnName = quickFilterConfig[key];
-        const container = document.getElementById(`quick-filter-${key}`);
-        
-        if (container) {
-            const links = container.getElementsByTagName('a');
-            for (let link of links) {
-                if (availableOptions[columnName] && availableOptions[columnName].has(link.textContent)) {
-                    link.classList.remove('disabled');
-                } else {
-                    link.classList.add('disabled');
-                }
-            }
-        }
     });
 }
 

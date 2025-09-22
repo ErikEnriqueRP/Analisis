@@ -1,4 +1,3 @@
-    
     function populateQuickFilters() {
     const filtersConfig = {
         'ano': { containerId: 'quick-filter-ano', createdCol: 'Creada', updatedCol: 'Actualizada' },
@@ -29,6 +28,35 @@
         if (createdYears.length > 0) anoContainer.appendChild(createSubmenu("Creada", createdYears, createdColName));
         if (updatedYears.length > 0) anoContainer.appendChild(createSubmenu("Actualizada", updatedYears, updatedColName));
     }
+
+    Object.keys(filtersConfig).forEach(key => {
+        if (key === 'ano') return;
+
+        const config = filtersConfig[key];
+        const container = document.getElementById(config.containerId);
+        const columnName = config.column;
+
+        if (container && headers.some(h => h.name === columnName)) {
+            container.innerHTML = '';
+
+            const uniqueValues = [...new Set(fullData.map(row => row[columnName] || ''))].sort();
+
+            uniqueValues.forEach(value => {
+                if (value === '') return;
+
+                const filterLink = document.createElement('a');
+                filterLink.href = '#';
+                filterLink.textContent = value;
+                
+                filterLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    applyQuickFilter(columnName, value);
+                });
+
+                container.appendChild(filterLink);
+            });
+        }
+    });
     }
 
     function createSubmenu(title, years, columnName) {
@@ -38,6 +66,7 @@
     const titleLink = document.createElement('a');
     titleLink.href = '#';
     titleLink.textContent = title + ' ▶';
+    // Ya no se añade el addEventListener aquí
     
     container.appendChild(titleLink);
     
@@ -99,14 +128,13 @@
     };
     const availableOptions = {};
     Object.values(quickFilterConfig).forEach(columnName => {
-        if(headers.some(h => h.name === columnName)) {
-            availableOptions[columnName] = new Set(filteredData.map(row => row[columnName]));
+        if (headers.some(h => h.name === columnName)) {
+            availableOptions[columnName] = new Set(filteredData.map(row => row[columnName] || ''));
         }
     });
     Object.keys(quickFilterConfig).forEach(key => {
         const columnName = quickFilterConfig[key];
         const container = document.getElementById(`quick-filter-${key}`);
-        
         if (container) {
             const links = container.getElementsByTagName('a');
             for (let link of links) {
@@ -118,21 +146,64 @@
             }
         }
     });
+    const createdColName = 'Creada';
+    const updatedColName = 'Actualizada';
+    const availableCreatedYears = new Set();
+    filteredData.forEach(row => {
+        const year = getFullYearFromString(row[createdColName]);
+        if (year) availableCreatedYears.add(year.toString());
+    });
+
+    const availableUpdatedYears = new Set();
+    filteredData.forEach(row => {
+        const year = getFullYearFromString(row[updatedColName]);
+        if (year) availableUpdatedYears.add(year.toString());
+    });
+    const anoContainer = document.getElementById('quick-filter-ano');
+    if (!anoContainer) return;
+    anoContainer.querySelectorAll('.submenu-container').forEach(submenuContainer => {
+        const titleLink = submenuContainer.querySelector('a');
+        const submenu = submenuContainer.querySelector('.submenu');
+        if (!titleLink || !submenu) return;
+
+        const yearLinks = submenu.querySelectorAll('a');
+        if (titleLink.textContent.includes('Creada')) {
+            yearLinks.forEach(link => {
+                if (availableCreatedYears.has(link.textContent)) {
+                    link.classList.remove('disabled');
+                } else {
+                    link.classList.add('disabled');
+                }
+            });
+        } else if (titleLink.textContent.includes('Actualizada')) {
+            yearLinks.forEach(link => {
+                if (availableUpdatedYears.has(link.textContent)) {
+                    link.classList.remove('disabled');
+                } else {
+                    link.classList.add('disabled');
+                }
+            });
+        }
+    });
     }
 
     function setupSubmenuToggles() {
+    // Busca TODOS los enlaces que son padres directos de un contenedor de submenú
     const submenuToggles = document.querySelectorAll('.submenu-container > a');
 
     submenuToggles.forEach(toggle => {
+        // Evita añadir el mismo listener varias veces
         if (toggle.dataset.listenerAttached) return;
 
         toggle.addEventListener('click', function(event) {
-            event.preventDefault();
-            event.stopPropagation();
+            event.preventDefault(); // Evita que la página salte al inicio
+            event.stopPropagation(); // Evita que el menú principal se cierre
 
             const parentContainer = this.closest('.submenu-container');
             const thisSubmenu = parentContainer.querySelector('.submenu');
             const isVisible = thisSubmenu.classList.contains('show-submenu');
+
+            // Cierra todos los otros submenús en el mismo nivel
             const siblingContainers = [...parentContainer.parentElement.children].filter(el => el !== parentContainer);
             siblingContainers.forEach(container => {
                 const submenu = container.querySelector('.submenu');
@@ -140,10 +211,14 @@
                     submenu.classList.remove('show-submenu');
                 }
             });
+            
+            // Muestra u oculta este submenú
             if (!isVisible) {
                 thisSubmenu.classList.add('show-submenu');
             }
         });
+
+        // Marca el elemento para no volver a añadirle el listener
         toggle.dataset.listenerAttached = 'true';
     });
     }
