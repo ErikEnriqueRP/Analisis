@@ -130,10 +130,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function  setupEventListeners() {
         document.getElementById('resetFiltersBtn').addEventListener('click', resetAllFilters);
         document.getElementById('showAllColumnsBtn').addEventListener('click', toggleAllColumns);
+        document.getElementById('saveTableBtn').addEventListener('click', saveCurrentTableState);
         document.getElementById('exportBtn').addEventListener('click', exportToExcelWithChart);
         document.getElementById('btn-gestionar-columnas').addEventListener('click', openColumnsModal);
         document.getElementById('btn-crear-grafico').addEventListener('click', openChartModal);
-        document.getElementById('btn-crear-tablas-link').addEventListener('click', navigateToDashboard);
 
         const applyFilterBtn = document.getElementById('applyFilterBtn');
         if (applyFilterBtn) applyFilterBtn.addEventListener('click', handleApplyFilter);
@@ -404,5 +404,38 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             alert("No hay datos para llevar al dashboard.");
         }
+    }
+
+    function saveCurrentTableState() {
+    if (filteredData.length === 0) {
+        alert("No se puede guardar una tabla sin datos. Por favor, ajuste los filtros.");
+        return;
+    }
+
+    const isConfirmed = confirm("¿Estás seguro de que quieres guardar el estado actual de la tabla (con los filtros aplicados)?");
+    if (!isConfirmed) {
+        return;
+    }
+
+    let tableName = prompt("Por favor, introduce un nombre para esta tabla guardada:", "JIRAS_Filtrados");
+    if (tableName === null || tableName.trim() === "") {
+        alert("Guardado cancelado. Se requiere un nombre para la tabla.");
+        return;
+    }
+    const serializableFilters = {};
+    for (const key in activeFilters) {
+        serializableFilters[key] = Array.from(activeFilters[key]);
+    }
+
+    const savedTable = {
+        id: Date.now(),
+        name: tableName.trim(),
+        filters: serializableFilters,
+    };
+    const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
+    savedTables.push(savedTable);
+    localStorage.setItem('savedTables', JSON.stringify(savedTables));
+
+    alert(`¡Tabla "${tableName.trim()}" guardada con éxito!\nPuedes verla en Tabla-->Tablas Guardadas.`);
     }
 });

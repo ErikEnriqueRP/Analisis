@@ -119,7 +119,7 @@
     displayPage();
     updateFilterIcons();
     }
-    
+
     function updateAvailableFilterOptions() {
     const quickFilterConfig = {
         'area': 'Area',
@@ -188,22 +188,18 @@
     }
 
     function setupSubmenuToggles() {
-    // Busca TODOS los enlaces que son padres directos de un contenedor de submenú
     const submenuToggles = document.querySelectorAll('.submenu-container > a');
 
     submenuToggles.forEach(toggle => {
-        // Evita añadir el mismo listener varias veces
         if (toggle.dataset.listenerAttached) return;
 
         toggle.addEventListener('click', function(event) {
-            event.preventDefault(); // Evita que la página salte al inicio
-            event.stopPropagation(); // Evita que el menú principal se cierre
+            event.preventDefault();
+            event.stopPropagation(); 
 
             const parentContainer = this.closest('.submenu-container');
             const thisSubmenu = parentContainer.querySelector('.submenu');
             const isVisible = thisSubmenu.classList.contains('show-submenu');
-
-            // Cierra todos los otros submenús en el mismo nivel
             const siblingContainers = [...parentContainer.parentElement.children].filter(el => el !== parentContainer);
             siblingContainers.forEach(container => {
                 const submenu = container.querySelector('.submenu');
@@ -211,14 +207,10 @@
                     submenu.classList.remove('show-submenu');
                 }
             });
-            
-            // Muestra u oculta este submenú
             if (!isVisible) {
                 thisSubmenu.classList.add('show-submenu');
             }
         });
-
-        // Marca el elemento para no volver a añadirle el listener
         toggle.dataset.listenerAttached = 'true';
     });
     }

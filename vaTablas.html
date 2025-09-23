@@ -3,58 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Tablas</title>
+    <title>Dashboard de Tablas Guardadas</title>
     <link rel="stylesheet" href="styles/vaTablas.css">
 </head>
 <body>
+
     <header class="main-header">
-        <h1>Dashboard de Tablas</h1>
-        <div class="controls-wrapper">
-            <button id="createTableBtn" class="btn btn-purple">Crear Nueva Tabla</button>
-            <button id="exportAllBtn" class="btn btn-green">Exportar Todo a Excel</button>
+        <h1>Dashboard de Tablas Guardadas</h1>
+        <div class="header-controls">
+            <a href="tabla.html" class="btn btn-blue">Volver al Analizador</a>
+            <button id="deleteAllTablesBtn" class="btn btn-red">Borrar Todas las Tablas</button>
         </div>
     </header>
 
     <main id="dashboard-container">
     </main>
 
-    <div id="createTableModal" class="modal">
-        <div class="modal-content">
-            <span class="close-button">×</span>
-            <h2>Crear Nueva Tabla Personalizada</h2>
-            <div class="form-group">
-                <label for="newTableName">Nombre de la Tabla:</label>
-                <input type="text" id="newTableName" placeholder="Ej: Ventas por Vendedor">
-            </div>
-            <div class="form-group">
-                <label>Seleccione las Columnas:</label>
-                <div id="modalColumnsList"></div>
-            </div>
-            <button id="saveNewTableBtn" class="btn btn-blue">Crear Tabla</button>
-        </div>
-    </div>
-    
-    <div id="chartModal" class="modal">
-        <div class="modal-content">
-            <span class="close-button">×</span>
-            <h2>Crear Gráfico</h2>
-            <div class="chart-controls">
-                <label for="categoryColumn">Columna para Categorías:</label>
-                <select id="categoryColumn"></select>
-                <label for="valueColumn">Columna para Valores:</label>
-                <select id="valueColumn"></select>
-                <button id="generateChartBtn" class="btn btn-blue">Generar</button>
-            </div>
-            <div class="chart-container">
-                <canvas id="pieChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="script/vaTablas.js"></script>
+
 </body>
 </html>
