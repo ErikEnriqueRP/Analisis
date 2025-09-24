@@ -177,11 +177,60 @@ h1 {
     transition: background-color 0.3s;
 }
 
-.btn-blue { background-color: #3498db; }
-.btn-blue:hover { background-color: #2980b9; }
+.btn-blue { 
+    background-color: #3498db; 
+}
+.btn-blue:hover { 
+    background-color: #2980b9; 
+}
 
-.btn-red { background-color: #e74c3c; }
-.btn-red:hover { background-color: #c0392b; }
+.btn-red { 
+    background-color: #e74c3c; 
+}
 
-.btn-green { background-color: #27ae60; }
-.btn-green:hover { background-color: #229954; }
+.btn-red:hover { 
+    background-color: #c0392b; 
+}
+
+.btn-green { 
+    background-color: #27ae60; 
+}
+
+.btn-green:hover { 
+    background-color: #229954; 
+}
+
+.saved-charts-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-top: 1px solid #eee;
+}
+
+.chart-card {
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    padding: 15px;
+    width: calc(50% - 30px); 
+}
+
+.chart-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.chart-card-header h4 {
+    margin: 0;
+    font-size: 1.1em;
+    color: #333;
+}
+
+.chart-card-body {
+    height: 250px;
+}

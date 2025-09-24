@@ -1,8 +1,9 @@
 let myPieChart = null;
 
-function openChartModalForTable(data, headers, tableName) {
+function openChartModalForTable(tableInfo, data, headers) {
     const modal = document.getElementById('chartModal');
-    document.getElementById('chartModalTitle').textContent = `Crear Gráfico para: ${tableName}`;
+    const saveChartBtn = document.getElementById('saveChartBtn');
+    document.getElementById('chartModalTitle').textContent = `Crear Gráfico para: ${tableInfo.name}`;
 
     const catSelect = document.getElementById('categoryColumn');
     const valSelect = document.getElementById('valueColumn');
@@ -21,12 +22,21 @@ function openChartModalForTable(data, headers, tableName) {
         generateChart(data);
     };
 
+    saveChartBtn.onclick = () => {
+        saveCurrentChart(tableInfo.id, data);
+    };
+
     modal.style.display = 'flex';
 }
 
 function generateChart(data) {
     const categoryCol = document.getElementById('categoryColumn').value;
     const valueCol = document.getElementById('valueColumn').value;
+
+    if (!categoryCol || !valueCol) {
+        alert("Por favor, selecciona ambas columnas para generar el gráfico.");
+        return null;
+    }
 
     let aggregatedData;
     if (valueCol === '__count__') {
@@ -64,4 +74,42 @@ function generateChart(data) {
             plugins: { legend: { position: 'top' } }
         }
     });
+    return { aggregatedData };
+}
+
+function saveCurrentChart(tableId, tableData) {
+    const categoryCol = document.getElementById('categoryColumn').value;
+    const valueCol = document.getElementById('valueColumn').value;
+
+    if (!myPieChart || !categoryCol || !valueCol) {
+        alert("Primero genera un gráfico antes de guardarlo.");
+        return;
+    }
+
+    const chartTitle = prompt("Introduce un nombre para este gráfico:", `Gráfico de ${categoryCol}`);
+    if (!chartTitle || chartTitle.trim() === "") {
+        alert("Guardado cancelado. Se necesita un nombre.");
+        return;
+    }
+
+    const newChart = {
+        id: Date.now(),
+        title: chartTitle.trim(),
+        categoryCol: categoryCol,
+        valueCol: valueCol,
+    };
+
+    const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
+    const tableToUpdate = savedTables.find(table => table.id === tableId);
+
+    if (tableToUpdate) {
+        if (!tableToUpdate.charts) {
+            tableToUpdate.charts = [];
+        }
+        tableToUpdate.charts.push(newChart);
+        localStorage.setItem('savedTables', JSON.stringify(savedTables));
+
+        renderSingleSavedChart(newChart, tableData, tableId);
+        document.getElementById('chartModal').style.display = 'none';
+    }
 }

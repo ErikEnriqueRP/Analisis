@@ -85,7 +85,7 @@ function createTableCard(tableInfo, data, headers) {
     chartBtn.title = 'Crear gráfico con estos datos';
     chartBtn.addEventListener('click', (event) => {
         event.stopPropagation();
-        openChartModalForTable(data, headers, tableInfo.name);
+        openChartModalForTable(tableInfo, data, headers);
     });
 
     const deleteBtn = document.createElement('button');
@@ -116,8 +116,13 @@ function createTableCard(tableInfo, data, headers) {
     paginationContainer.className = 'pagination-controls';
     paginationContainer.id = `pagination-controls-${tableInfo.id}`;
 
+    const chartsContainer = document.createElement('div');
+    chartsContainer.className = 'saved-charts-container';
+    chartsContainer.id = `charts-for-${tableInfo.id}`;
+
     panel.appendChild(tableContainer);
     panel.appendChild(paginationContainer);
+    panel.appendChild(chartsContainer);
 
     header.addEventListener('click', () => {
         header.classList.toggle('active');
@@ -126,6 +131,9 @@ function createTableCard(tableInfo, data, headers) {
         } else {
             if (!panel.dataset.hasBeenRendered) {
                 renderTablePage(tableInfo.id, data, headers, rowsPerPage);
+                if (tableInfo.charts && tableInfo.charts.length > 0) {
+                    tableInfo.charts.forEach(chart => renderSingleSavedChart(chart, data, tableInfo.id));
+                }
                 panel.dataset.hasBeenRendered = "true";
             }
             panel.style.maxHeight = panel.scrollHeight + "px";
@@ -135,6 +143,78 @@ function createTableCard(tableInfo, data, headers) {
     card.appendChild(header);
     card.appendChild(panel);
     return card;
+}
+
+function renderSingleSavedChart(chartInfo, tableData, tableId) {
+    const chartsContainer = document.getElementById(`charts-for-${tableId}`);
+    if (!chartsContainer) return;
+
+    const chartCard = document.createElement('div');
+    chartCard.className = 'chart-card';
+    chartCard.id = `chart-card-${chartInfo.id}`;
+
+    const chartHeader = document.createElement('div');
+    chartHeader.className = 'chart-card-header';
+    chartHeader.innerHTML = `<h4>${chartInfo.title}</h4>`;
+
+    const deleteChartBtn = document.createElement('button');
+    deleteChartBtn.className = 'btn-delete-single';
+    deleteChartBtn.textContent = '×';
+    deleteChartBtn.title = 'Borrar este gráfico';
+    deleteChartBtn.onclick = () => deleteSingleChart(tableId, chartInfo.id);
+
+    chartHeader.appendChild(deleteChartBtn);
+
+    const canvasContainer = document.createElement('div');
+    canvasContainer.className = 'chart-card-body';
+    const canvas = document.createElement('canvas');
+    canvas.id = `canvas-${chartInfo.id}`;
+    canvasContainer.appendChild(canvas);
+
+    chartCard.appendChild(chartHeader);
+    chartCard.appendChild(canvasContainer);
+    chartsContainer.appendChild(chartCard);
+
+    let aggregatedData;
+    if (chartInfo.valueCol === '__count__') {
+        aggregatedData = tableData.reduce((acc, row) => {
+            const category = row[chartInfo.categoryCol] || 'Sin categoría';
+            acc[category] = (acc[category] || 0) + 1;
+            return acc;
+        }, {});
+    } else {
+        aggregatedData = tableData.reduce((acc, row) => {
+            const category = row[chartInfo.categoryCol] || 'Sin categoría';
+            const value = parseFloat(String(row[chartInfo.valueCol]).replace(/,/g, '')) || 0;
+            acc[category] = (acc[category] || 0) + value;
+            return acc;
+        }, {});
+    }
+
+    new Chart(canvas.getContext('2d'), {
+        type: 'pie',
+        data: {
+            labels: Object.keys(aggregatedData),
+            datasets: [{
+                data: Object.values(aggregatedData),
+                backgroundColor: ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c'],
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+
+function deleteSingleChart(tableId, chartId) {
+    if (!confirm("¿Estás seguro de que quieres borrar este gráfico?")) return;
+
+    const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
+    const tableToUpdate = savedTables.find(table => table.id === tableId);
+
+    if (tableToUpdate && tableToUpdate.charts) {
+        tableToUpdate.charts = tableToUpdate.charts.filter(chart => chart.id !== chartId);
+        localStorage.setItem('savedTables', JSON.stringify(savedTables));
+        document.getElementById(`chart-card-${chartId}`).remove();
+    }
 }
 
 function renderTablePage(tableId, data, headers, rowsPerPage) {
