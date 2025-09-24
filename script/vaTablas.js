@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedTablesData = localStorage.getItem('savedTables');
     const container = document.getElementById('dashboard-container');
     const deleteAllBtn = document.getElementById('deleteAllTablesBtn');
+    const exportAllBtn = document.getElementById('exportAllBtn');
 
     if (!mainCsvData) {
         container.innerHTML = '<p class="error-msg">No se encontraron datos base. Por favor, <a href="index.html">carga un archivo CSV</a> primero.</p>';
@@ -15,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedTables.length === 0) {
         container.innerHTML = '<p class="info-msg">Aún no has guardado ninguna tabla. Ve a la <a href="tabla.html">página de la tabla</a> para filtrar y guardar una vista.</p>';
         if (deleteAllBtn) deleteAllBtn.style.display = 'none';
+        if (exportAllBtn) exportAllBtn.style.display = 'none'; 
         return;
     }
 
@@ -23,12 +25,21 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteAllBtn.addEventListener('click', deleteAllTables);
     }
 
+    if (exportAllBtn) { 
+        exportAllBtn.style.display = 'inline-block';
+        exportAllBtn.addEventListener('click', exportAllTablesToExcel);
+    }
+
     Papa.parse(mainCsvData, {
         header: true,
         skipEmptyLines: true,
         complete: function(results) {
-            const fullData = results.data;
-            const headers = results.meta.fields;
+            let fullData = results.data;
+            let headers = results.meta.fields;
+
+            const processedResult = applyAreaAndCustomColumns(fullData, headers);
+            fullData = processedResult.processedData;
+            headers = processedResult.updatedHeaders;
 
             savedTables.forEach(table => {
                 const filtered = applySavedFilters(fullData, table.filters);
@@ -65,8 +76,20 @@ function createTableCard(tableInfo, data, headers) {
     titleWrapper.className = 'header-title-wrapper';
     titleWrapper.innerHTML = `<span>${tableInfo.name}</span> <span class="row-count">(${data.length} filas)</span>`;
 
+    const cardActions = document.createElement('div');
+    cardActions.className = 'card-actions';
+
+    const chartBtn = document.createElement('button');
+    chartBtn.className = 'btn-card-action btn-chart';
+    chartBtn.textContent = '📈';
+    chartBtn.title = 'Crear gráfico con estos datos';
+    chartBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        openChartModalForTable(data, headers, tableInfo.name);
+    });
+
     const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn-delete-single';
+    deleteBtn.className = 'btn-card-action btn-delete-single';
     deleteBtn.textContent = '×';
     deleteBtn.title = 'Borrar esta tabla';
     deleteBtn.addEventListener('click', (event) => {
@@ -74,8 +97,11 @@ function createTableCard(tableInfo, data, headers) {
         deleteSingleTable(tableInfo.id);
     });
 
+    cardActions.appendChild(chartBtn);
+    cardActions.appendChild(deleteBtn);
+
     header.appendChild(titleWrapper);
-    header.appendChild(deleteBtn);
+    header.appendChild(cardActions);
 
     const panel = document.createElement('div');
     panel.className = 'accordion-panel';
@@ -191,4 +217,78 @@ function deleteAllTables() {
         alert('Todas las tablas guardadas han sido borradas.');
         location.reload();
     }
+}
+
+function applyAreaAndCustomColumns(data, currentHeaders) {
+    const numCharsForArea = 2;
+    const areaColumnName = 'Area';
+    const summaryColumnName = 'Resumen';
+
+    if (currentHeaders.some(h => h === summaryColumnName) && !currentHeaders.some(h => h === areaColumnName)) {
+        currentHeaders.unshift(areaColumnName);
+    }
+    data.forEach(row => {
+        const sourceValue = row[summaryColumnName] || '';
+        row[areaColumnName] = sourceValue.substring(0, numCharsForArea);
+    });
+
+    const leftColumnConfig = JSON.parse(localStorage.getItem('leftColumnConfig') || 'null');
+    if (leftColumnConfig && leftColumnConfig.enabled && leftColumnConfig.source && leftColumnConfig.newName) {
+        const newName = leftColumnConfig.newName.trim();
+        if (currentHeaders.some(h => h === leftColumnConfig.source) && !currentHeaders.some(h => h === newName)) {
+            currentHeaders.push(newName);
+        }
+        data.forEach(row => {
+            const src = row[leftColumnConfig.source] || '';
+            const leftPart = src.substring(0, Math.max(0, leftColumnConfig.numChars));
+            const concatPart = leftColumnConfig.concat && row[leftColumnConfig.concat] ? (row[leftColumnConfig.concat] || '') : '';
+            row[newName] = concatPart ? `${leftPart}_${concatPart}` : leftPart;
+        });
+    }
+
+    return { processedData: data, updatedHeaders: currentHeaders };
+}
+
+async function exportAllTablesToExcel() {
+    const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
+    const mainCsvData = localStorage.getItem('csvData');
+
+    if (savedTables.length === 0 || !mainCsvData) {
+        alert("No hay tablas guardadas o datos base para exportar.");
+        return;
+    }
+
+    const parsedData = await new Promise(resolve => {
+        Papa.parse(mainCsvData, {
+            header: true,
+            skipEmptyLines: true,
+            complete: results => resolve(results)
+        });
+    });
+
+    let fullData = parsedData.data;
+    let headers = parsedData.meta.fields;
+
+    const processedResult = applyAreaAndCustomColumns(fullData, headers);
+    fullData = processedResult.processedData;
+    headers = processedResult.updatedHeaders;
+
+    const workbook = new ExcelJS.Workbook();
+
+    for (const table of savedTables) {
+
+        const sheetName = table.name.replace(/[\\/*?[\]:]/g, "").substring(0, 31);
+        const worksheet = workbook.addWorksheet(sheetName);
+
+        const dataForSheet = applySavedFilters(fullData, table.filters);
+
+        worksheet.columns = headers.map(h => ({ header: h, key: h, width: 20 }));
+        worksheet.addRows(dataForSheet);
+
+        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF34495E' } };
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buffer]), 'TablasGuardadas.xlsx');
 }

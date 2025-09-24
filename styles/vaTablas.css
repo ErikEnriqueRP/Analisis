@@ -61,20 +61,41 @@ h1 {
     color: #bdc3c7;
 }
 
-.btn-delete-single {
-    background-color: #c0392b;
-    color: white;
+.card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-card-action {
     border: none;
     border-radius: 50%;
     width: 28px;
     height: 28px;
-    font-size: 20px;
-    font-weight: bold;
-    line-height: 26px;
+    font-size: 16px;
+    line-height: 28px;
     text-align: center;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, transform 0.2s;
     flex-shrink: 0;
+}
+
+.btn-card-action:hover {
+    transform: scale(1.1);
+}
+
+.btn-chart {
+    background-color: #9b59b6;
+    color: white;
+}
+.btn-chart:hover {
+    background-color: #8e44ad;
+}
+
+.btn-delete-single {
+    background-color: #c0392b;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
 }
 
 .btn-delete-single:hover {
@@ -85,8 +106,8 @@ h1 {
     padding: 0;
     background-color: white;
     max-height: 0;
-    overflow: hidden; 
-    overflow-x: auto; 
+    overflow: hidden;
+    overflow-x: auto;
     transition: max-height 0.4s ease-out;
 }
 
@@ -104,54 +125,6 @@ h1 {
 .accordion-panel th {
     background-color: #ecf0f1;
 }
-
-.more-rows-info {
-    text-align: center;
-    padding: 10px;
-    color: #7f8c8d;
-    font-style: italic;
-}
-
-.info-msg, .error-msg {
-    text-align: center;
-    padding: 2rem;
-    font-size: 1.2em;
-    color: #555;
-}
-
-.error-msg {
-    color: #e74c3c;
-}
-
-.btn {
-    padding: 10px 20px;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
-    text-decoration: none;
-    font-size: 0.9em;
-    transition: background-color 0.3s;
-}
-
-.btn-blue {
-    background-color: #3498db;
-}
-
-.btn-blue:hover {
-    background-color: #2980b9;
-}
-
-.btn-red {
-    background-color: #e74c3c;
-}
-
-.btn-red:hover {
-    background-color: #c0392b;
-}
-
-/* ... al final de tu archivo ... */
 
 .pagination-controls {
     display: flex;
@@ -181,8 +154,34 @@ h1 {
     cursor: not-allowed;
 }
 
-.no-data-cell {
+.info-msg, .error-msg {
     text-align: center;
-    color: #888;
     padding: 2rem;
+    font-size: 1.2em;
+    color: #555;
 }
+
+.error-msg {
+    color: #e74c3c;
+}
+
+.btn {
+    padding: 10px 20px;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: none;
+    font-size: 0.9em;
+    transition: background-color 0.3s;
+}
+
+.btn-blue { background-color: #3498db; }
+.btn-blue:hover { background-color: #2980b9; }
+
+.btn-red { background-color: #e74c3c; }
+.btn-red:hover { background-color: #c0392b; }
+
+.btn-green { background-color: #27ae60; }
+.btn-green:hover { background-color: #229954; }

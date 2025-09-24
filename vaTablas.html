@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard de Tablas Guardadas</title>
     <link rel="stylesheet" href="styles/vaTablas.css">
+    <link rel="stylesheet" href="styles/graficosTabla.css">
 </head>
 <body>
 
@@ -12,6 +13,7 @@
         <h1>Dashboard de Tablas Guardadas</h1>
         <div class="header-controls">
             <a href="tabla.html" class="btn btn-blue">Volver al Analizador</a>
+            <button id="exportAllBtn" class="btn btn-green">Exportar a Excel</button>
             <button id="deleteAllTablesBtn" class="btn btn-red">Borrar Todas las Tablas</button>
         </div>
     </header>
@@ -19,7 +21,36 @@
     <main id="dashboard-container">
     </main>
 
+    <div id="chartModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h2 id="chartModalTitle">Crear Gráfico</h2>
+                <span class="close-btn" onclick="document.getElementById('chartModal').style.display='none'">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="chart-controls">
+                    <label for="categoryColumn">Agrupar por (Categorías):</label>
+                    <select id="categoryColumn"></select>
+                    <label for="valueColumn">Calcular (Valores):</label>
+                    <select id="valueColumn"></select>
+                    <button id="generateChartBtn" class="btn btn-blue">Generar Gráfico</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="document.getElementById('chartModal').style.display='none'">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="script/graficosTabla.js"></script>
     <script src="script/vaTablas.js"></script>
 
 </body>
