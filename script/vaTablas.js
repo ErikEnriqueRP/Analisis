@@ -356,7 +356,6 @@ async function exportAllTablesToExcel() {
     const workbook = new ExcelJS.Workbook();
 
     for (const table of savedTables) {
-
         const sheetName = table.name.replace(/[\\/*?[\]:]/g, "").substring(0, 31);
         const worksheet = workbook.addWorksheet(sheetName);
 
@@ -367,8 +366,95 @@ async function exportAllTablesToExcel() {
 
         worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
         worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF34495E' } };
+
+        if (table.charts && table.charts.length > 0) {
+            let chartRowStart = worksheet.rowCount + 3;
+
+            for (const chartInfo of table.charts) {
+                const fullDataUrl = await generateChartImage(chartInfo, dataForSheet);
+
+                if (fullDataUrl && fullDataUrl.startsWith('data:image/png;base64,')) {
+                    const base64Image = fullDataUrl.split(',')[1];
+                    if (base64Image) {
+                        const imageId = workbook.addImage({
+                            base64: base64Image,
+                            extension: 'png',
+                        });
+
+                        worksheet.addImage(imageId, {
+                            tl: { col: 1, row: chartRowStart },
+                            br: { col: 9, row: chartRowStart + 20 }
+                        });
+                        
+                        chartRowStart += 22;
+                    }
+                }
+            }
+        }
     }
 
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), 'TablasGuardadas.xlsx');
+    saveAs(new Blob([buffer]), 'Tablas_JIRAS.xlsx');
+}
+
+async function generateChartImage(chartInfo, tableData) {
+    const container = document.createElement('div');
+    container.style.width = '600px';
+    container.style.height = '400px';
+    container.style.position = 'absolute';
+    container.style.top = '-9999px';
+    container.style.left = '-9999px';
+
+    const canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+    document.body.appendChild(container);
+
+    let aggregatedData;
+    if (chartInfo.valueCol === '__count__') {
+        aggregatedData = tableData.reduce((acc, row) => {
+            const category = row[chartInfo.categoryCol] || 'Sin categoría';
+            acc[category] = (acc[category] || 0) + 1;
+            return acc;
+        }, {});
+    } else {
+        aggregatedData = tableData.reduce((acc, row) => {
+            const category = row[chartInfo.categoryCol] || 'Sin categoría';
+            const value = parseFloat(String(row[chartInfo.valueCol]).replace(/,/g, '')) || 0;
+            acc[category] = (acc[category] || 0) + value;
+            return acc;
+        }, {});
+    }
+    new Chart(canvas, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(aggregatedData),
+            datasets: [{
+                data: Object.values(aggregatedData),
+                backgroundColor: ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c'],
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 1, 
+            },
+            plugins: {
+                title: { display: true, text: chartInfo.title, font: { size: 16 } },
+                datalabels: { display: false }
+            }
+        }
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    try {
+        const dataUrl = await domtoimage.toPng(container);
+        return dataUrl;
+    } catch (error) {
+        console.error('No se pudo generar la imagen del gráfico:', error);
+        return null; 
+    } finally {
+        document.body.removeChild(container);
+    }
 }
