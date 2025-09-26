@@ -117,38 +117,40 @@ function generateChart(data) {
 }
 
 function saveCurrentChart(tableId, tableData) {
-    const categoryCol = document.getElementById('categoryColumn').value;
-    const valueCol = document.getElementById('valueColumn').value;
-
-    if (!myPieChart || !categoryCol || !valueCol) {
-        alert("Primero genera un gráfico antes de guardarlo.");
+    const chartResult = generateChart(tableData);
+    if (!chartResult) {
         return;
     }
 
-    const chartTitle = prompt("Introduce un nombre para este gráfico:", `Gráfico de ${categoryCol}`);
-    if (!chartTitle || chartTitle.trim() === "") {
-        alert("Guardado cancelado. Se necesita un nombre.");
-        return;
-    }
+    setTimeout(() => {
+        const categoryCol = document.getElementById('categoryColumn').value;
+        const valueCol = document.getElementById('valueColumn').value;
 
-    const newChart = {
-        id: Date.now(),
-        title: chartTitle.trim(),
-        categoryCol: categoryCol,
-        valueCol: valueCol,
-    };
-
-    const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
-    const tableToUpdate = savedTables.find(table => table.id === tableId);
-
-    if (tableToUpdate) {
-        if (!tableToUpdate.charts) {
-            tableToUpdate.charts = [];
+        const chartTitle = prompt("Introduce un nombre para este gráfico:", `Gráfico de ${categoryCol}`);
+        if (!chartTitle || chartTitle.trim() === "") {
+            alert("Guardado cancelado. Se necesita un nombre.");
+            return;
         }
-        tableToUpdate.charts.push(newChart);
-        localStorage.setItem('savedTables', JSON.stringify(savedTables));
 
-        renderSingleSavedChart(newChart, tableData, tableId);
-        document.getElementById('chartModal').style.display = 'none';
-    }
+        const newChart = {
+            id: Date.now(),
+            title: chartTitle.trim(),
+            categoryCol: categoryCol,
+            valueCol: valueCol,
+        };
+
+        const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
+        const tableToUpdate = savedTables.find(table => table.id === tableId);
+
+        if (tableToUpdate) {
+            if (!tableToUpdate.charts) {
+                tableToUpdate.charts = [];
+            }
+            tableToUpdate.charts.push(newChart);
+            localStorage.setItem('savedTables', JSON.stringify(savedTables));
+
+            renderSingleSavedChart(newChart, tableData, tableId);
+            document.getElementById('chartModal').style.display = 'none';
+        }
+    }, 50);
 }

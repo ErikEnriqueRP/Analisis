@@ -418,21 +418,25 @@ async function generateChartImage(chartInfo, tableData) {
     container.appendChild(canvas);
     document.body.appendChild(container);
 
-    let aggregatedData;
-    if (chartInfo.valueCol === '__count__') {
-        aggregatedData = tableData.reduce((acc, row) => {
-            const category = row[chartInfo.categoryCol] || 'Sin categoría';
-            acc[category] = (acc[category] || 0) + 1;
-            return acc;
-        }, {});
-    } else {
-        aggregatedData = tableData.reduce((acc, row) => {
-            const category = row[chartInfo.categoryCol] || 'Sin categoría';
+    let aggregatedData = {};
+    const isStateChart = chartInfo.categoryCol === 'Estado';
+
+    tableData.forEach(row => {
+        let category;
+        if (isStateChart) {
+            category = mapStatusToGroup(row['Estado']);
+        } else {
+            category = row[chartInfo.categoryCol] || 'Sin categoría';
+        }
+        
+        if (chartInfo.valueCol === '__count__') {
+            aggregatedData[category] = (aggregatedData[category] || 0) + 1;
+        } else {
             const value = parseFloat(String(row[chartInfo.valueCol]).replace(/,/g, '')) || 0;
-            acc[category] = (acc[category] || 0) + value;
-            return acc;
-        }, {});
-    }
+            aggregatedData[category] = (aggregatedData[category] || 0) + value;
+        }
+    });
+
     new Chart(canvas, {
         type: 'pie',
         data: {
@@ -445,9 +449,7 @@ async function generateChartImage(chartInfo, tableData) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: {
-                duration: 1, 
-            },
+            animation: { duration: 1 },
             plugins: {
                 title: { display: true, text: chartInfo.title, font: { size: 16 } },
                 datalabels: { display: false }
@@ -462,7 +464,7 @@ async function generateChartImage(chartInfo, tableData) {
         return dataUrl;
     } catch (error) {
         console.error('No se pudo generar la imagen del gráfico:', error);
-        return null; 
+        return null;
     } finally {
         document.body.removeChild(container);
     }
