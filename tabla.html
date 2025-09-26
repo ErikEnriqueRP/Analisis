@@ -115,9 +115,11 @@
                     <select id="valueColumn"></select>
                     <button id="generateChartBtn" class="btn btn-blue">Generar Gráfico</button>
                 </div>
-                <div class="chart-container">
+                <div class="chart-wrapper">
+                    <div class="chart-canvas-container">
                     <canvas id="pieChart"></canvas>
                 </div>
+            <div id="chart-legend" class="chart-legend"></div>
             </div>
             <div class="modal-footer">
                  <button class="btn" onclick="document.getElementById('chartModal').style.display='none'">Cerrar</button>
@@ -131,6 +133,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
     <script src="script/tabla.js" defer></script>
+    <script src="script/graficosComunes.js" defer></script>
     <script src="script/filtro-tabla.js" defer></script>
     <script src="script/quickFilter.js" defer></script>
 </body>

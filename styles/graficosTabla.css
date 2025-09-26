@@ -81,3 +81,54 @@
     border-top: 1px solid #eee;
     padding-top: 15px;
 }
+.chart-container ul,
+.chart-container li {
+    white-space: pre-wrap;
+}
+
+.chart-wrapper {
+    display: flex;
+    flex-direction: row;
+    height: 400px;
+    width: 100%;
+}
+
+.chart-canvas-container {
+    flex-grow: 1;
+    position: relative;
+}
+
+.chart-legend {
+    flex-shrink: 0;
+    width: 280px; 
+    padding-left: 20px;
+    overflow-y: auto;
+    font-size: 14px;
+}
+
+.chart-legend ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.chart-legend li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.chart-legend .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.chart-legend .sub-item {
+    padding-left: 22px; 
+    font-size: 13px;
+    color: #555;
+}

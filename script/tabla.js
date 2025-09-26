@@ -234,71 +234,112 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function generateChartFromFilteredData() {
-        const categoryCol = document.getElementById('categoryColumn').value;
-        const valueCol = document.getElementById('valueColumn').value;
-        if (!categoryCol || !valueCol) {
-            alert('Por favor, selecciona ambas columnas.');
-            return;
-        }
+    const categoryCol = document.getElementById('categoryColumn').value;
+    const valueCol = document.getElementById('valueColumn').value;
+    if (!categoryCol || !valueCol) {
+        alert('Por favor, selecciona ambas columnas.');
+        return;
+    }
 
-        let aggregatedData;
-        if (valueCol === '__count__') {
-            aggregatedData = filteredData.reduce((acc, row) => {
-                const category = row[categoryCol] || 'Sin categoría';
-                acc[category] = (acc[category] || 0) + 1;
-                return acc;
-            }, {});
-        } else {
-            aggregatedData = filteredData.reduce((acc, row) => {
-                const category = row[categoryCol] || 'Sin categoría';
-                const value = parseFloat(String(row[valueCol]).replace(/,/g, '')) || 0;
-                if (value !== 0) acc[category] = (acc[category] || 0) + value;
-                return acc;
-            }, {});
-        }
-        drawPieChart(aggregatedData, valueCol === '__count__' ? 'Conteo' : valueCol);
+    let aggregatedData;
+    if (valueCol === '__count__') {
+        aggregatedData = filteredData.reduce((acc, row) => {
+            let category;
+            if (categoryCol === 'Estado') {
+                category = mapStatusToGroup(row[categoryCol]);
+            } else {
+                category = row[categoryCol] || 'Sin categoría';
+            }
+            acc[category] = (acc[category] || 0) + 1;
+            return acc;
+        }, {});
+    } else {
+        aggregatedData = filteredData.reduce((acc, row) => {
+            let category;
+            if (categoryCol === 'Estado') {
+                category = mapStatusToGroup(row[categoryCol]);
+            } else {
+                category = row[categoryCol] || 'Sin categoría';
+            }
+            const value = parseFloat(String(row[valueCol]).replace(/,/g, '')) || 0;
+            if (value !== 0) acc[category] = (acc[category] || 0) + value;
+            return acc;
+        }, {});
+    }
+
+    drawPieChart(aggregatedData, valueCol === '__count__' ? 'Conteo' : valueCol);
     }
 
     function drawPieChart(data, valueColName) {
-        const canvas = document.getElementById('pieChart');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (myPieChart) myPieChart.destroy();
+    const canvas = document.getElementById('pieChart');
+    const legendContainer = document.getElementById('chart-legend');
+    if (!canvas || !legendContainer) return;
 
-        myPieChart = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: Object.keys(data),
-                datasets: [{
-                    label: valueColName,
-                    data: Object.values(data),
-                    backgroundColor: ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'],
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: {
-                    onComplete: () => { if (myPieChart) chartImageDataUrl = myPieChart.toBase64Image('image/png'); }
-                },
-                plugins: {
-                    legend: { position: 'right' },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.label || '';
-                                let value = context.raw || 0;
-                                let total = context.chart.getDatasetMeta(0).total || 1;
-                                let percentage = (value / total * 100).toFixed(2);
-                                return `${label}: ${value.toLocaleString()} (${percentage}%)`;
-                            }
-                        }
-                    },
-                    datalabels: { display: false }
-                }
+    const ctx = canvas.getContext('2d');
+    if (myPieChart) myPieChart.destroy();
+
+    const total = Object.values(data).reduce((sum, value) => sum + value, 0);
+    const isStateChart = document.getElementById('categoryColumn').value === 'Estado';
+    let openSubCategories = {};
+
+    if (isStateChart && data['Abiertos']) {
+        filteredData.forEach(row => {
+            const status = row['Estado'] || '';
+            if (mapStatusToGroup(status) === 'Abiertos') {
+                openSubCategories[status] = (openSubCategories[status] || 0) + 1;
             }
         });
+    }
+
+    myPieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(data),
+            datasets: [{
+                label: valueColName,
+                data: Object.values(data),
+                backgroundColor: ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6'],
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                onComplete: () => { if (myPieChart) chartImageDataUrl = myPieChart.toBase64Image('image/png'); }
+            },
+            plugins: {
+                legend: { display: false },
+                datalabels: { display: false }
+            }
+        }
+    });
+
+    legendContainer.innerHTML = '';
+    const ul = document.createElement('ul');
+    
+    myPieChart.data.labels.forEach((label, index) => {
+        const value = myPieChart.data.datasets[0].data[index];
+        const percentage = total > 0 ? (value / total * 100).toFixed(2) : 0;
+        const color = myPieChart.data.datasets[0].backgroundColor[index];
+
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <span class="legend-swatch" style="background-color: ${color}"></span>
+            <span>${label}: ${value.toLocaleString()} (${percentage}%)</span>
+        `;
+        ul.appendChild(li);
+
+        if (isStateChart && label === 'Abiertos') {
+            Object.entries(openSubCategories).forEach(([status, count]) => {
+                const subPercentage = total > 0 ? (count / total * 100).toFixed(2) : 0;
+                const subLi = document.createElement('li');
+                subLi.className = 'sub-item';
+                subLi.innerHTML = `<span>- ${status || '(Vacío)'}: ${count} (${subPercentage}%)</span>`;
+                ul.appendChild(subLi);
+            });
+        }
+    });
+    legendContainer.appendChild(ul);
     }
 
     function openColumnsModal() {

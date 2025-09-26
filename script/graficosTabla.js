@@ -34,46 +34,85 @@ function generateChart(data) {
     const valueCol = document.getElementById('valueColumn').value;
 
     if (!categoryCol || !valueCol) {
-        alert("Por favor, selecciona ambas columnas para generar el gráfico.");
+        alert("Por favor, selecciona ambas columnas.");
         return null;
     }
 
-    let aggregatedData;
-    if (valueCol === '__count__') {
-        aggregatedData = data.reduce((acc, row) => {
-            const category = row[categoryCol] || 'Sin categoría';
-            acc[category] = (acc[category] || 0) + 1;
-            return acc;
-        }, {});
-    } else {
-        aggregatedData = data.reduce((acc, row) => {
-            const category = row[categoryCol] || 'Sin categoría';
-            const value = parseFloat(String(row[valueCol]).replace(/,/g, '')) || 0;
-            acc[category] = (acc[category] || 0) + value;
-            return acc;
-        }, {});
-    }
+    let aggregatedData = {};
+    let subCategories = {};
+    const isStateChart = categoryCol === 'Estado';
 
+    data.forEach(row => {
+        let category, originalValue;
+        if (isStateChart) {
+            originalValue = row[categoryCol] || '';
+            category = mapStatusToGroup(originalValue);
+            if (category === 'Abiertos') {
+                subCategories[originalValue] = (subCategories[originalValue] || 0) + 1;
+            }
+        } else {
+            category = row[categoryCol] || 'Sin categoría';
+        }
+
+        aggregatedData[category] = (aggregatedData[category] || 0) + (valueCol === '__count__' ? 1 : (parseFloat(String(row[valueCol]).replace(/,/g, '')) || 0));
+    });
+    
     const canvas = document.getElementById('pieChart');
+    const legendContainer = document.getElementById('chart-legend');
+    if (!canvas || !legendContainer) return;
+
     const ctx = canvas.getContext('2d');
     if (myPieChart) myPieChart.destroy();
 
+    const total = Object.values(aggregatedData).reduce((sum, value) => sum + value, 0);
+    const labels = Object.keys(aggregatedData);
+    const values = Object.values(aggregatedData);
+    
     myPieChart = new Chart(ctx, {
         type: 'pie',
         data: {
-            labels: Object.keys(aggregatedData),
+            labels: labels,
             datasets: [{
                 label: valueCol === '__count__' ? 'Conteo' : valueCol,
-                data: Object.values(aggregatedData),
-                backgroundColor: ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c'],
+                data: values,
+                backgroundColor: ['#3498db', '#e74c3c', '#2ecc71'],
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { position: 'top' } }
+            plugins: {
+                legend: { display: false }
+            }
         }
     });
+    legendContainer.innerHTML = '';
+    const ul = document.createElement('ul');
+    
+    labels.forEach((label, index) => {
+        const value = values[index];
+        const percentage = total > 0 ? (value / total * 100).toFixed(2) : 0;
+        const color = myPieChart.data.datasets[0].backgroundColor[index];
+        
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <span class="legend-swatch" style="background-color: ${color}"></span>
+            <span>${label}: ${value.toLocaleString()} (${percentage}%)</span>
+        `;
+        ul.appendChild(li);
+
+        if (isStateChart && label === 'Abiertos') {
+            Object.entries(subCategories).forEach(([status, count]) => {
+                const subPercentage = total > 0 ? (count / total * 100).toFixed(2) : 0;
+                const subLi = document.createElement('li');
+                subLi.className = 'sub-item';
+                subLi.innerHTML = `<span>- ${status || '(Vacío)'}: ${count} (${subPercentage}%)</span>`;
+                ul.appendChild(subLi);
+            });
+        }
+    });
+    legendContainer.appendChild(ul);
+
     return { aggregatedData };
 }
 

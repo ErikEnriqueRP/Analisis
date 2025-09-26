@@ -176,17 +176,26 @@ function renderSingleSavedChart(chartInfo, tableData, tableId) {
     chartsContainer.appendChild(chartCard);
 
     let aggregatedData;
-    if (chartInfo.valueCol === '__count__') {
+    if (chartInfo.categoryCol === 'Estado') {
         aggregatedData = tableData.reduce((acc, row) => {
-            const category = row[chartInfo.categoryCol] || 'Sin categoría';
-            acc[category] = (acc[category] || 0) + 1;
+            const group = mapStatusToGroup(row['Estado']);
+            if (chartInfo.valueCol === '__count__') {
+                acc[group] = (acc[group] || 0) + 1;
+            } else {
+                const value = parseFloat(String(row[chartInfo.valueCol]).replace(/,/g, '')) || 0;
+                acc[group] = (acc[group] || 0) + value;
+            }
             return acc;
         }, {});
     } else {
         aggregatedData = tableData.reduce((acc, row) => {
             const category = row[chartInfo.categoryCol] || 'Sin categoría';
-            const value = parseFloat(String(row[chartInfo.valueCol]).replace(/,/g, '')) || 0;
-            acc[category] = (acc[category] || 0) + value;
+            if (chartInfo.valueCol === '__count__') {
+                acc[category] = (acc[category] || 0) + 1;
+            } else {
+                const value = parseFloat(String(row[chartInfo.valueCol]).replace(/,/g, '')) || 0;
+                acc[category] = (acc[category] || 0) + value;
+            }
             return acc;
         }, {});
     }

@@ -35,9 +35,12 @@
                     <select id="valueColumn"></select>
                     <button id="generateChartBtn" class="btn btn-blue">Generar Gráfico</button>
                 </div>
-                <div class="chart-container">
+                <div class="chart-wrapper">
+                    <div class="chart-canvas-container">
                     <canvas id="pieChart"></canvas>
                 </div>
+                <div id="chart-legend" class="chart-legend"></div>
+            </div>
             </div>
             <div class="modal-footer">
                 <button class="btn" onclick="document.getElementById('chartModal').style.display='none'">Cerrar</button>
@@ -52,6 +55,7 @@
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="script/graficosTabla.js"></script>
+    <script src="script/graficosComunes.js"></script>
     <script src="script/vaTablas.js"></script>
 
 </body>
