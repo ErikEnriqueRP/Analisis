@@ -453,30 +453,73 @@ async function exportAllTablesToExcel() {
             let chartRowStart = worksheet.rowCount + 3;
 
             for (const chartInfo of table.charts) {
+                const aggregatedData = aggregateChartData(chartInfo, dataForSheet);
+                const total = Object.values(aggregatedData).reduce((sum, val) => sum + val, 0);
+
                 const fullDataUrl = await generateChartImage(chartInfo, dataForSheet);
 
                 if (fullDataUrl && fullDataUrl.startsWith('data:image/png;base64,')) {
                     const base64Image = fullDataUrl.split(',')[1];
                     if (base64Image) {
-                        const imageId = workbook.addImage({
-                            base64: base64Image,
-                            extension: 'png',
-                        });
-
+                        const imageId = workbook.addImage({ base64: base64Image, extension: 'png' });
                         worksheet.addImage(imageId, {
                             tl: { col: 1, row: chartRowStart },
                             br: { col: 9, row: chartRowStart + 20 }
                         });
-                        
-                        chartRowStart += 22;
                     }
                 }
+
+                const dataTableStartRow = chartRowStart + 1;
+                const dataTableStartCol = 11;
+
+                const titleCell = worksheet.getCell(dataTableStartRow - 1, dataTableStartCol);
+                titleCell.value = chartInfo.title;
+                titleCell.font = { bold: true, size: 14 };
+
+                // --- INICIO DE LA LÓGICA CORREGIDA ---
+                // Escribimos cada cabecera en su celda específica
+                const headerRow = worksheet.getRow(dataTableStartRow);
+                headerRow.getCell(dataTableStartCol).value = 'Categoría';
+                headerRow.getCell(dataTableStartCol + 1).value = 'Valor';
+                headerRow.getCell(dataTableStartCol + 2).value = 'Porcentaje';
+                headerRow.font = { bold: true };
+                // --- FIN DE LA LÓGICA CORREGIDA ---
+                
+                headerRow.getCell(dataTableStartCol).alignment = { horizontal: 'center' };
+                headerRow.getCell(dataTableStartCol + 1).alignment = { horizontal: 'center' };
+                headerRow.getCell(dataTableStartCol + 2).alignment = { horizontal: 'center' };
+
+                let currentRowNum = dataTableStartRow + 1;
+                Object.entries(aggregatedData).forEach(([label, value]) => {
+                    const percentage = total > 0 ? (value / total) : 0;
+                    const row = worksheet.getRow(currentRowNum);
+                    
+                    row.getCell(dataTableStartCol).value = label;
+                    row.getCell(dataTableStartCol + 1).value = value;
+                    row.getCell(dataTableStartCol + 2).value = percentage;
+                    
+                    row.getCell(dataTableStartCol + 2).numFmt = '0.00%';
+                    currentRowNum++;
+                });
+
+                const totalRow = worksheet.getRow(currentRowNum);
+                totalRow.getCell(dataTableStartCol).value = 'Total';
+                totalRow.getCell(dataTableStartCol + 1).value = total;
+                totalRow.getCell(dataTableStartCol + 2).value = 1;
+                totalRow.font = { bold: true };
+                totalRow.getCell(dataTableStartCol + 2).numFmt = '0.00%';
+
+                worksheet.getColumn(dataTableStartCol).width = 20;
+                worksheet.getColumn(dataTableStartCol + 1).width = 15;
+                worksheet.getColumn(dataTableStartCol + 2).width = 15;
+
+                chartRowStart += 25;
             }
         }
     }
 
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), 'Tablas_JIRAS.xlsx');
+    saveAs(new Blob([buffer]), 'TablasGuardadas_ConGraficos.xlsx');
 }
 
 async function generateChartImage(chartInfo, tableData) {
