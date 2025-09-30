@@ -20,7 +20,25 @@
 
     <main id="dashboard-container">
     </main>
-
+    <div id="chartDetailModal" class="modal">
+    <div class="modal-content large">
+        <div class="modal-header">
+            <h2 id="chartDetailTitle">Detalles del Gráfico</h2>
+            <span class="close-btn" onclick="document.getElementById('chartDetailModal').style.display='none'">&times;</span>
+        </div>
+        <div class="modal-body chart-detail-body">
+            <div id="chartDetailImageContainer" class="chart-detail-image">
+                <img id="chartDetailImage" src="" alt="Vista detallada del gráfico">
+            </div>
+            <div id="chartDetailLegend" class="chart-legend">
+                <!-- La leyenda detallada se generará aquí -->
+            </div>
+        </div>
+        <div class="modal-footer">
+                <button class="btn" onclick="document.getElementById('chartDetailModal').style.display='none'">Cerrar</button>
+            </div>
+        </div>
+    </div>
     <div id="chartModal" class="modal">
         <div class="modal-content large">
             <div class="modal-header">

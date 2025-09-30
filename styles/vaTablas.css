@@ -234,3 +234,46 @@ h1 {
 .chart-card-body {
     height: 250px;
 }
+.chart-card-footer {
+    text-align: right;
+    padding-top: 15px;
+    border-top: 1px solid #f0f0f0;
+    margin-top: 10px;
+}
+
+.btn-view-details {
+    background-color: #7f8c8d;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-view-details:hover {
+    background-color: #95a5a6;
+}
+
+.chart-detail-body {
+    display: flex;
+    gap: 20px;
+}
+
+.chart-detail-image {
+    flex: 2; /* Ocupa 2/3 del espacio */
+    border-right: 1px solid #eee;
+    padding-right: 20px;
+}
+
+#chartDetailImage {
+    max-width: 100%;
+    height: auto;
+}
+
+.chart-detail-body .chart-legend {
+    flex: 1; 
+    width: auto; 
+    padding-left: 0;
+}

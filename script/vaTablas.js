@@ -1,3 +1,4 @@
+Chart.register(ChartDataLabels);
 document.addEventListener('DOMContentLoaded', () => {
     const mainCsvData = localStorage.getItem('csvData');
     const savedTablesData = localStorage.getItem('savedTables');
@@ -145,6 +146,28 @@ function createTableCard(tableInfo, data, headers) {
     return card;
 }
 
+function aggregateChartData(chartInfo, tableData) {
+    let aggregatedData = {};
+    const isStateChart = chartInfo.categoryCol === 'Estado';
+
+    tableData.forEach(row => {
+        let category;
+        if (isStateChart) {
+            category = mapStatusToGroup(row['Estado']);
+        } else {
+            category = row[chartInfo.categoryCol] || 'Sin categoría';
+        }
+        
+        if (chartInfo.valueCol === '__count__') {
+            aggregatedData[category] = (aggregatedData[category] || 0) + 1;
+        } else {
+            const value = parseFloat(String(row[chartInfo.valueCol]).replace(/,/g, '')) || 0;
+            aggregatedData[category] = (aggregatedData[category] || 0) + value;
+        }
+    });
+    return aggregatedData;
+}
+
 function renderSingleSavedChart(chartInfo, tableData, tableId) {
     const chartsContainer = document.getElementById(`charts-for-${tableId}`);
     if (!chartsContainer) return;
@@ -162,43 +185,31 @@ function renderSingleSavedChart(chartInfo, tableData, tableId) {
     deleteChartBtn.textContent = '×';
     deleteChartBtn.title = 'Borrar este gráfico';
     deleteChartBtn.onclick = () => deleteSingleChart(tableId, chartInfo.id);
-
     chartHeader.appendChild(deleteChartBtn);
 
     const canvasContainer = document.createElement('div');
     canvasContainer.className = 'chart-card-body';
     const canvas = document.createElement('canvas');
-    canvas.id = `canvas-${chartInfo.id}`;
     canvasContainer.appendChild(canvas);
+
+    const chartFooter = document.createElement('div');
+    chartFooter.className = 'chart-card-footer';
+    const detailsBtn = document.createElement('button');
+    detailsBtn.className = 'btn-view-details';
+    detailsBtn.textContent = 'Ver Detalles';
+    detailsBtn.onclick = () => showChartDetails(chartInfo, tableData);
+    chartFooter.appendChild(detailsBtn);
 
     chartCard.appendChild(chartHeader);
     chartCard.appendChild(canvasContainer);
+    chartCard.appendChild(chartFooter);
     chartsContainer.appendChild(chartCard);
 
-    let aggregatedData;
-    if (chartInfo.categoryCol === 'Estado') {
-        aggregatedData = tableData.reduce((acc, row) => {
-            const group = mapStatusToGroup(row['Estado']);
-            if (chartInfo.valueCol === '__count__') {
-                acc[group] = (acc[group] || 0) + 1;
-            } else {
-                const value = parseFloat(String(row[chartInfo.valueCol]).replace(/,/g, '')) || 0;
-                acc[group] = (acc[group] || 0) + value;
-            }
-            return acc;
-        }, {});
-    } else {
-        aggregatedData = tableData.reduce((acc, row) => {
-            const category = row[chartInfo.categoryCol] || 'Sin categoría';
-            if (chartInfo.valueCol === '__count__') {
-                acc[category] = (acc[category] || 0) + 1;
-            } else {
-                const value = parseFloat(String(row[chartInfo.valueCol]).replace(/,/g, '')) || 0;
-                acc[category] = (acc[category] || 0) + value;
-            }
-            return acc;
-        }, {});
-    }
+    const aggregatedData = aggregateChartData(chartInfo, tableData);
+    const total = Object.values(aggregatedData).reduce((sum, value) => sum + value, 0);
+    const labels = Object.keys(aggregatedData);
+    const isStateChart = chartInfo.categoryCol === 'Estado';
+    const chartColors = getChartColors(isStateChart, labels);
 
     new Chart(canvas.getContext('2d'), {
         type: 'pie',
@@ -206,11 +217,69 @@ function renderSingleSavedChart(chartInfo, tableData, tableId) {
             labels: Object.keys(aggregatedData),
             datasets: [{
                 data: Object.values(aggregatedData),
-                backgroundColor: ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c'],
+                backgroundColor: chartColors,
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false }
+       options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { display: false },
+                datalabels: {
+                    display: true,
+                    color: '#fff',
+                    font: { 
+                        weight: 'bold', size: 12 
+                    },
+                    textStrokeColor: 'black',
+                    textStrokeWidth: 2,
+                    formatter: (value, ctx) => {
+                        const percentage = (value / total * 100);
+                        if (percentage < 8) return null;
+                        return percentage.toFixed(0) + '%'; 
+                    }
+                }
+            }
+        }
     });
+}
+
+async function showChartDetails(chartInfo, tableData) {
+    const modal = document.getElementById('chartDetailModal');
+    const title = document.getElementById('chartDetailTitle');
+    const image = document.getElementById('chartDetailImage');
+    const legendContainer = document.getElementById('chartDetailLegend');
+
+    title.textContent = chartInfo.title;
+    image.src = ''; 
+    legendContainer.innerHTML = '<p>Generando vista...</p>';
+    modal.style.display = 'flex';
+
+    const imageUrl = await generateChartImage(chartInfo, tableData);
+    image.src = imageUrl;
+
+    const aggregatedData = aggregateChartData(chartInfo, tableData);
+    const total = Object.values(aggregatedData).reduce((sum, value) => sum + value, 0);
+    const labels = Object.keys(aggregatedData);
+    const isStateChart = chartInfo.categoryCol === 'Estado';
+    const chartColors = getChartColors(isStateChart, labels);
+    
+    let legendHtml = '<ul>';
+    labels.forEach((label, index) => {
+        const value = aggregatedData[label];
+        const percentage = total > 0 ? (value / total * 100).toFixed(2) : 0;
+        const color = chartColors[index];
+
+        legendHtml += `
+            <li>
+                <span class="legend-swatch" style="background-color: ${color}"></span>
+                <span>${label}: ${value.toLocaleString()} (${percentage}%)</span>
+            </li>
+        `;
+    });
+    legendHtml += '</ul>';
+    
+    legendContainer.innerHTML = legendHtml;
 }
 
 function deleteSingleChart(tableId, chartId) {
@@ -222,7 +291,11 @@ function deleteSingleChart(tableId, chartId) {
     if (tableToUpdate && tableToUpdate.charts) {
         tableToUpdate.charts = tableToUpdate.charts.filter(chart => chart.id !== chartId);
         localStorage.setItem('savedTables', JSON.stringify(savedTables));
-        document.getElementById(`chart-card-${chartId}`).remove();
+        
+        const chartCardElement = document.getElementById(`chart-card-${chartId}`);
+        if (chartCardElement) {
+            chartCardElement.remove();
+        }
     }
 }
 
@@ -418,32 +491,19 @@ async function generateChartImage(chartInfo, tableData) {
     container.appendChild(canvas);
     document.body.appendChild(container);
 
-    let aggregatedData = {};
+    const aggregatedData = aggregateChartData(chartInfo, tableData);
+    const labels = Object.keys(aggregatedData);
     const isStateChart = chartInfo.categoryCol === 'Estado';
-
-    tableData.forEach(row => {
-        let category;
-        if (isStateChart) {
-            category = mapStatusToGroup(row['Estado']);
-        } else {
-            category = row[chartInfo.categoryCol] || 'Sin categoría';
-        }
-        
-        if (chartInfo.valueCol === '__count__') {
-            aggregatedData[category] = (aggregatedData[category] || 0) + 1;
-        } else {
-            const value = parseFloat(String(row[chartInfo.valueCol]).replace(/,/g, '')) || 0;
-            aggregatedData[category] = (aggregatedData[category] || 0) + value;
-        }
-    });
+    const chartColors = getChartColors(isStateChart, labels);
+    const total = Object.values(aggregatedData).reduce((sum, value) => sum + value, 0);
 
     new Chart(canvas, {
         type: 'pie',
         data: {
-            labels: Object.keys(aggregatedData),
+            labels: labels,
             datasets: [{
                 data: Object.values(aggregatedData),
-                backgroundColor: ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c'],
+                backgroundColor: chartColors,
             }]
         },
         options: {
@@ -452,7 +512,18 @@ async function generateChartImage(chartInfo, tableData) {
             animation: { duration: 1 },
             plugins: {
                 title: { display: true, text: chartInfo.title, font: { size: 16 } },
-                datalabels: { display: false }
+                datalabels: {
+                    display: true,
+                    color: '#fff',
+                    font: { weight: 'bold' },
+                    formatter: (value, ctx) => {
+                        const percentage = (value / total * 100);
+                        if (percentage < 4) {
+                            return null;
+                        }
+                        return percentage.toFixed(1) + '%';
+                    }
+                }
             }
         }
     });
@@ -468,4 +539,16 @@ async function generateChartImage(chartInfo, tableData) {
     } finally {
         document.body.removeChild(container);
     }
+}
+
+function getChartColors(isStateChart, labels) {
+    if (isStateChart) {
+        const stateColorMap = {
+            'Abiertos': '#3498db',   
+            'Finalizada': '#2ecc71',
+            'Cancelado': '#e74c3c'    
+        };
+        return labels.map(label => stateColorMap[label] || '#bdc3c7'); // Gris para casos raros
+    }
+    return ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
 }
