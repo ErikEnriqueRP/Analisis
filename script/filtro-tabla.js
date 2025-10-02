@@ -32,7 +32,6 @@ function openFilterModal(columnName) {
 
     const currentFilter = activeFilters[columnName] || new Set();
     const otherFilterKeys = Object.keys(activeFilters).filter(k => k !== columnName);
-
     let sourceData = fullData;
 
     if (otherFilterKeys.length > 0) {
@@ -67,7 +66,8 @@ function openFilterModal(columnName) {
             header.innerHTML = `<span>${year}</span> <button class="select-year-btn">Seleccionar Año</button>`;
             const panel = document.createElement('div');
             panel.className = 'date-panel';
-            const sortedDates = Array.from(groupedByYear[year]).sort((a, b) => new Date(a.split('/').reverse().join('-')) - new Date(b.split('/').reverse().join('-')));
+
+            const sortedDates = Array.from(groupedByYear[year]).sort();
 
             sortedDates.forEach(date => {
                 const isChecked = currentFilter.size === 0 || currentFilter.has(date);
