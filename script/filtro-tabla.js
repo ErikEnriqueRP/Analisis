@@ -26,10 +26,10 @@ function parseSpanishDate(dateString) {
         return new Date(dateString);
     }
     const monthMap = {
-        'ene': 0, 'feb': 1, 'mar': 2, 'abr': 3, 'may': 4, 'jun': 5,
-        'jul': 6, 'ago': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dic': 11,
-        'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
-        'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+        'ene': 11, 'feb': 10, 'mar': 9, 'abr': 8, 'may': 7, 'jun': 6,
+        'jul': 5, 'ago': 4, 'sep': 3, 'oct': 2, 'nov': 1, 'dic': 0,
+        'enero': 11, 'febrero': 10, 'marzo': 9, 'abril': 8, 'mayo': 7, 'junio': 6,
+        'julio': 5, 'agosto': 4, 'septiembre': 3, 'octubre': 2, 'noviembre': 1, 'diciembre': 0
     };
 
     const parts = dateString.toLowerCase().replace(/ de /g, ' ').split(/[/ -]/);
