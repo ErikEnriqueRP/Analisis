@@ -51,16 +51,47 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+function getFullYearFromString(dateString) {
+    if (!dateString || typeof dateString !== 'string') {
+        return null;
+    }
+    const parts = dateString.split(/[/ -]/);
+    if (parts.length < 3) return null;
+    
+    let yearPart = parts[0].length === 4 ? parts[0] : parts[2];
+    const yearNum = parseInt(yearPart, 10);
+    
+    if (isNaN(yearNum)) return null;
+
+    if (yearPart.length === 2) {
+        return yearNum > 50 ? 1900 + yearNum : 2000 + yearNum;
+    }
+    return yearNum;
+}
+
 function applySavedFilters(data, filters) {
     const filterKeys = Object.keys(filters);
     if (filterKeys.length === 0) {
         return data;
     }
+
     return data.filter(row => {
         return filterKeys.every(columnName => {
             const filterValues = new Set(filters[columnName]);
             if (filterValues.size === 0) return true;
+            
             const cellValue = row[columnName] || '';
+
+            const isDateYearFilter = (columnName.toLowerCase() === "creada" || columnName.toLowerCase() === "actualizada");
+            
+            if (isDateYearFilter) {
+                const sampleValue = [...filterValues][0];
+                if (filterValues.size === 1 && /^\d{4}$/.test(sampleValue)) {
+                    const filterYear = parseInt(sampleValue, 10);
+                    const cellYear = getFullYearFromString(cellValue);
+                    return cellYear === filterYear;
+                }
+            }
             return filterValues.has(cellValue);
         });
     });
@@ -476,14 +507,11 @@ async function exportAllTablesToExcel() {
                 titleCell.value = chartInfo.title;
                 titleCell.font = { bold: true, size: 14 };
 
-                // --- INICIO DE LA LÓGICA CORREGIDA ---
-                // Escribimos cada cabecera en su celda específica
                 const headerRow = worksheet.getRow(dataTableStartRow);
                 headerRow.getCell(dataTableStartCol).value = 'Categoría';
                 headerRow.getCell(dataTableStartCol + 1).value = 'Valor';
                 headerRow.getCell(dataTableStartCol + 2).value = 'Porcentaje';
                 headerRow.font = { bold: true };
-                // --- FIN DE LA LÓGICA CORREGIDA ---
                 
                 headerRow.getCell(dataTableStartCol).alignment = { horizontal: 'center' };
                 headerRow.getCell(dataTableStartCol + 1).alignment = { horizontal: 'center' };
@@ -595,3 +623,4 @@ function getChartColors(isStateChart, labels) {
     }
     return ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
 }
+
