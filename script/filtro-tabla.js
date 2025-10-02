@@ -91,7 +91,7 @@ function openFilterModal(columnName) {
             }
         });
 
-       
+    
         const sortedYears = Object.keys(groupedByYear).sort((a, b) => b - a);
         sortedYears.forEach(year => {
             const yearWrapper = document.createElement('div');
