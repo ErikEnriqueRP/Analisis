@@ -191,7 +191,6 @@ function handleApplyFilter() {
 
 function applyActiveFilters() {
     const filterKeys = Object.keys(activeFilters);
-
     if (filterKeys.length === 0) {
         filteredData = [...fullData];
         return;
@@ -203,20 +202,23 @@ function applyActiveFilters() {
             if (filterValues.size === 0) return true;
             
             const cellValue = row[columnName] || '';
+            const sampleValue = [...filterValues][0];
+            const isDateColumn = (columnName.toLowerCase() === "creada" || columnName.toLowerCase() === "actualizada");
 
-            if (columnName.toLowerCase() === "creada" || columnName.toLowerCase() === "actualizada") {
-                const sampleValue = [...filterValues][0];
-
-                if (filterValues.size === 1 && /^\d{4}$/.test(sampleValue)) {
+            if (isDateColumn && typeof sampleValue === 'string') {
+                if (sampleValue.includes('-')) {
+                    const [filterYear, filterMonth] = sampleValue.split('-').map(Number);
+                    const cellYear = getFullYearFromString(cellValue);
+                    const cellMonth = getMonthFromString(cellValue);
+                    return cellYear === filterYear && cellMonth === filterMonth;
+                }
+                if (/^\d{4}$/.test(sampleValue)) {
                     const filterYear = parseInt(sampleValue, 10);
                     const cellYear = getFullYearFromString(cellValue);
                     return cellYear === filterYear;
-                } else {
-                    return filterValues.has(cellValue);
                 }
-            } else {
-                return filterValues.has(cellValue);
             }
+            return filterValues.has(cellValue);
         });
     });
 }
@@ -230,4 +232,10 @@ function updateFilterIcons() {
             icon.classList.remove('active');
         }
     });
+}
+
+function getMonthFromString(dateString) {
+    if (!dateString) return null;
+    const date = parseSpanishDate(dateString); 
+    return date ? date.getUTCMonth() : null; 
 }

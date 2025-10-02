@@ -52,29 +52,37 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-function getFullYearFromString(dateString) {
-    if (!dateString || typeof dateString !== 'string') {
-        return null;
-    }
-    const parts = dateString.split(/[/ -]/);
+function parseSpanishDate(dateString) {
+    if (!dateString) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return new Date(dateString);
+    const monthMap = {'ene':0,'feb':1,'mar':2,'abr':3,'may':4,'jun':5,'jul':6,'ago':7,'sep':8,'oct':9,'nov':10,'dic':11,'enero':0,'febrero':1,'marzo':2,'abril':3,'mayo':4,'junio':5,'julio':6,'agosto':7,'septiembre':8,'octubre':9,'noviembre':10,'diciembre':11};
+    const parts = dateString.toLowerCase().replace(/ de /g, ' ').split(/[/ -]/);
     if (parts.length < 3) return null;
-    
-    let yearPart = parts[0].length === 4 ? parts[0] : parts[2];
-    const yearNum = parseInt(yearPart, 10);
-    
-    if (isNaN(yearNum)) return null;
-
-    if (yearPart.length === 2) {
-        return yearNum > 50 ? 1900 + yearNum : 2000 + yearNum;
+    let day, month, year;
+    for (const part of parts) {
+        if (monthMap[part] !== undefined) month = monthMap[part];
+        else if (part.length === 4 && !isNaN(part)) year = parseInt(part, 10);
+        else if (part.length <= 2 && !isNaN(part)) day = parseInt(part, 10);
     }
-    return yearNum;
+    if (day !== undefined && month !== undefined && year !== undefined) return new Date(Date.UTC(year, month, day));
+    return null;
+}
+
+function getFullYearFromString(dateString) {
+    if (!dateString) return null;
+    const date = parseSpanishDate(dateString);
+    return date ? date.getUTCFullYear() : null;
+}
+
+function getMonthFromString(dateString) {
+    if (!dateString) return null;
+    const date = parseSpanishDate(dateString);
+    return date ? date.getUTCMonth() : null;
 }
 
 function applySavedFilters(data, filters) {
     const filterKeys = Object.keys(filters);
-    if (filterKeys.length === 0) {
-        return data;
-    }
+    if (filterKeys.length === 0) return data;
 
     return data.filter(row => {
         return filterKeys.every(columnName => {
@@ -82,17 +90,25 @@ function applySavedFilters(data, filters) {
             if (filterValues.size === 0) return true;
             
             const cellValue = row[columnName] || '';
+            const sampleValue = [...filterValues][0];
 
-            const isDateYearFilter = (columnName.toLowerCase() === "creada" || columnName.toLowerCase() === "actualizada");
-            
-            if (isDateYearFilter) {
-                const sampleValue = [...filterValues][0];
-                if (filterValues.size === 1 && /^\d{4}$/.test(sampleValue)) {
+            const isDateColumn = (columnName.toLowerCase() === "creada" || columnName.toLowerCase() === "actualizada");
+
+            if (isDateColumn && typeof sampleValue === 'string') {
+                if (sampleValue.includes('-')) {
+                    const [filterYear, filterMonth] = sampleValue.split('-').map(Number);
+                    const cellYear = getFullYearFromString(cellValue);
+                    const cellMonth = getMonthFromString(cellValue);
+                    return cellYear === filterYear && cellMonth === filterMonth;
+                }
+                
+                if (/^\d{4}$/.test(sampleValue)) {
                     const filterYear = parseInt(sampleValue, 10);
                     const cellYear = getFullYearFromString(cellValue);
                     return cellYear === filterYear;
                 }
             }
+            
             return filterValues.has(cellValue);
         });
     });
