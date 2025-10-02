@@ -19,6 +19,40 @@ function getFullYearFromString(dateString) {
     return yearNum;
 }
 
+function parseSpanishDate(dateString) {
+    if (!dateString) return null;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return new Date(dateString);
+    }
+    const monthMap = {
+        'ene': 0, 'feb': 1, 'mar': 2, 'abr': 3, 'may': 4, 'jun': 5,
+        'jul': 6, 'ago': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dic': 11,
+        'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+        'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+    };
+
+    const parts = dateString.toLowerCase().replace(/ de /g, ' ').split(/[/ -]/);
+    if (parts.length < 3) return null;
+
+    let day, month, year;
+
+    for (const part of parts) {
+        if (monthMap[part] !== undefined) {
+            month = monthMap[part];
+        } else if (part.length === 4 && !isNaN(part)) {
+            year = parseInt(part, 10);
+        } else if (part.length <= 2 && !isNaN(part)) {
+            day = parseInt(part, 10);
+        }
+    }
+
+    if (day && month !== undefined && year) {
+        return new Date(Date.UTC(year, month, day));
+    }
+    return null;
+}
+
 function openFilterModal(columnName) {
     const modal = document.getElementById('filterModal');
     const title = document.getElementById('filterModalTitle');
@@ -57,6 +91,7 @@ function openFilterModal(columnName) {
             }
         });
 
+       
         const sortedYears = Object.keys(groupedByYear).sort((a, b) => b - a);
         sortedYears.forEach(year => {
             const yearWrapper = document.createElement('div');
@@ -67,8 +102,13 @@ function openFilterModal(columnName) {
             const panel = document.createElement('div');
             panel.className = 'date-panel';
 
-            const sortedDates = Array.from(groupedByYear[year]).sort();
-
+            const sortedDates = Array.from(groupedByYear[year]).sort((a, b) => {
+                const dateA = parseSpanishDate(a);
+                const dateB = parseSpanishDate(b);
+                if (!dateA || !dateB) return 0;
+                return dateA - dateB;
+            });
+            
             sortedDates.forEach(date => {
                 const isChecked = currentFilter.size === 0 || currentFilter.has(date);
                 panel.innerHTML += `<label><input type="checkbox" value="${date}" ${isChecked ? 'checked' : ''}>${date}</label>`;
