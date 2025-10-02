@@ -1,4 +1,5 @@
 Chart.register(ChartDataLabels);
+const defaultVisibleColumns = ['Area','Clave de incidencia','Resumen','Prioridad','Estado','Creada','Actualizada'];
 document.addEventListener('DOMContentLoaded', () => {
     const mainCsvData = localStorage.getItem('csvData');
     const savedTablesData = localStorage.getItem('savedTables');
@@ -100,6 +101,7 @@ function applySavedFilters(data, filters) {
 function createTableCard(tableInfo, data, headers) {
     const card = document.createElement('div');
     card.className = 'table-card';
+    card.dataset.visibleColumns = JSON.stringify(tableInfo.visibleColumns);
 
     const header = document.createElement('div');
     header.className = 'accordion-header';
@@ -107,10 +109,8 @@ function createTableCard(tableInfo, data, headers) {
     const titleWrapper = document.createElement('div');
     titleWrapper.className = 'header-title-wrapper';
     titleWrapper.innerHTML = `<span>${tableInfo.name}</span> <span class="row-count">(${data.length} filas)</span>`;
-
     const cardActions = document.createElement('div');
     cardActions.className = 'card-actions';
-
     const chartBtn = document.createElement('button');
     chartBtn.className = 'btn-card-action btn-chart';
     chartBtn.textContent = '📈';
@@ -119,7 +119,6 @@ function createTableCard(tableInfo, data, headers) {
         event.stopPropagation();
         openChartModalForTable(tableInfo, data, headers);
     });
-
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn-card-action btn-delete-single';
     deleteBtn.textContent = '×';
@@ -128,18 +127,32 @@ function createTableCard(tableInfo, data, headers) {
         event.stopPropagation();
         deleteSingleTable(tableInfo.id);
     });
-
     cardActions.appendChild(chartBtn);
     cardActions.appendChild(deleteBtn);
-
     header.appendChild(titleWrapper);
     header.appendChild(cardActions);
-
+    
     const panel = document.createElement('div');
     panel.className = 'accordion-panel';
-
     panel.dataset.currentPage = 1;
     const rowsPerPage = 50;
+    const controlsWrapper = document.createElement('div');
+    controlsWrapper.className = 'table-card-controls';
+    const toggleColumnsBtn = document.createElement('button');
+    toggleColumnsBtn.className = 'btn btn-blue';
+    toggleColumnsBtn.textContent = 'Mostrar Todo'; 
+    toggleColumnsBtn.onclick = () => {
+        const currentVisible = JSON.parse(card.dataset.visibleColumns);
+        if (currentVisible.length === headers.length) { 
+            card.dataset.visibleColumns = JSON.stringify(defaultVisibleColumns);
+            toggleColumnsBtn.textContent = 'Mostrar Todo';
+        } else {
+            card.dataset.visibleColumns = JSON.stringify(headers);
+            toggleColumnsBtn.textContent = 'Mostrar Predeterminadas';
+        }
+        renderTablePage(tableInfo.id, data, headers, rowsPerPage);
+    };
+    controlsWrapper.appendChild(toggleColumnsBtn);
 
     const tableContainer = document.createElement('div');
     tableContainer.id = `table-container-${tableInfo.id}`;
@@ -152,6 +165,7 @@ function createTableCard(tableInfo, data, headers) {
     chartsContainer.className = 'saved-charts-container';
     chartsContainer.id = `charts-for-${tableInfo.id}`;
 
+    panel.appendChild(controlsWrapper);
     panel.appendChild(tableContainer);
     panel.appendChild(paginationContainer);
     panel.appendChild(chartsContainer);
@@ -331,9 +345,12 @@ function deleteSingleChart(tableId, chartId) {
 }
 
 function renderTablePage(tableId, data, headers, rowsPerPage) {
-    const panel = document.querySelector(`#pagination-controls-${tableId}`).parentElement;
-    const tableContainer = document.querySelector(`#table-container-${tableId}`);
+    const card = document.querySelector(`#table-container-${tableId}`).closest('.table-card');
+    const panel = card.querySelector('.accordion-panel');
+    const tableContainer = card.querySelector(`#table-container-${tableId}`);
     if (!panel || !tableContainer) return;
+    const visibleColumns = JSON.parse(card.dataset.visibleColumns);
+    const visibleHeaders = headers.filter(h => visibleColumns.includes(h));
 
     const currentPage = parseInt(panel.dataset.currentPage, 10);
     const startIndex = (currentPage - 1) * rowsPerPage;
@@ -341,24 +358,22 @@ function renderTablePage(tableId, data, headers, rowsPerPage) {
     const paginatedData = data.slice(startIndex, endIndex);
 
     let tableHTML = '<table><thead><tr>';
-    headers.forEach(h => { tableHTML += `<th>${h}</th>`; });
+    visibleHeaders.forEach(h => { tableHTML += `<th>${h}</th>`; });
     tableHTML += '</tr></thead><tbody>';
 
     if (paginatedData.length > 0) {
         paginatedData.forEach(row => {
             tableHTML += '<tr>';
-            headers.forEach(h => { tableHTML += `<td>${row[h] || ''}</td>`; });
+            visibleHeaders.forEach(h => { tableHTML += `<td>${row[h] || ''}</td>`; });
             tableHTML += '</tr>';
         });
-    } else {
-        tableHTML += `<tr><td colspan="${headers.length}" class="no-data-cell">No hay datos.</td></tr>`;
-    }
+    } else { /* ... */ }
 
     tableHTML += '</tbody></table>';
     tableContainer.innerHTML = tableHTML;
 
     renderPaginationControls(tableId, data, headers, rowsPerPage);
-
+    
     if (panel.style.maxHeight) {
         panel.style.maxHeight = panel.scrollHeight + "px";
     }
@@ -474,8 +489,26 @@ async function exportAllTablesToExcel() {
 
         const dataForSheet = applySavedFilters(fullData, table.filters);
 
-        worksheet.columns = headers.map(h => ({ header: h, key: h, width: 20 }));
-        worksheet.addRows(dataForSheet);
+        const cardElement = document.querySelector(`#charts-for-${table.id}`)?.closest('.table-card');
+        let visibleColumnsForExport;
+        if (cardElement && cardElement.dataset.visibleColumns) {
+            visibleColumnsForExport = JSON.parse(cardElement.dataset.visibleColumns);
+        } else {
+            visibleColumnsForExport = table.visibleColumns || defaultVisibleColumns;
+        }
+
+        const visibleHeadersForExport = headers.filter(h => visibleColumnsForExport.includes(h));
+
+        worksheet.columns = visibleHeadersForExport.map(h => ({ header: h, key: h, width: 20 }));
+        
+        const dataToExport = dataForSheet.map(row => {
+            let exportRow = {};
+            visibleHeadersForExport.forEach(h => {
+                exportRow[h] = row[h];
+            });
+            return exportRow;
+        });
+        worksheet.addRows(dataToExport);
 
         worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
         worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF34495E' } };
@@ -486,7 +519,6 @@ async function exportAllTablesToExcel() {
             for (const chartInfo of table.charts) {
                 const aggregatedData = aggregateChartData(chartInfo, dataForSheet);
                 const total = Object.values(aggregatedData).reduce((sum, val) => sum + val, 0);
-
                 const fullDataUrl = await generateChartImage(chartInfo, dataForSheet);
 
                 if (fullDataUrl && fullDataUrl.startsWith('data:image/png;base64,')) {
@@ -495,7 +527,7 @@ async function exportAllTablesToExcel() {
                         const imageId = workbook.addImage({ base64: base64Image, extension: 'png' });
                         worksheet.addImage(imageId, {
                             tl: { col: 1, row: chartRowStart },
-                            br: { col: 9, row: chartRowStart + 20 }
+                            br: { col: 5, row: chartRowStart + 20 }
                         });
                     }
                 }
@@ -521,11 +553,9 @@ async function exportAllTablesToExcel() {
                 Object.entries(aggregatedData).forEach(([label, value]) => {
                     const percentage = total > 0 ? (value / total) : 0;
                     const row = worksheet.getRow(currentRowNum);
-                    
                     row.getCell(dataTableStartCol).value = label;
                     row.getCell(dataTableStartCol + 1).value = value;
                     row.getCell(dataTableStartCol + 2).value = percentage;
-                    
                     row.getCell(dataTableStartCol + 2).numFmt = '0.00%';
                     currentRowNum++;
                 });
@@ -547,7 +577,7 @@ async function exportAllTablesToExcel() {
     }
 
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), 'TablasGuardadas_ConGraficos.xlsx');
+    saveAs(new Blob([buffer]), 'Tablas_JIRAS.xlsx');
 }
 
 async function generateChartImage(chartInfo, tableData) {
@@ -619,7 +649,7 @@ function getChartColors(isStateChart, labels) {
             'Finalizada': '#2ecc71',
             'Cancelado': '#e74c3c'    
         };
-        return labels.map(label => stateColorMap[label] || '#bdc3c7'); // Gris para casos raros
+        return labels.map(label => stateColorMap[label] || '#bdc3c7'); 
     }
     return ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
 }

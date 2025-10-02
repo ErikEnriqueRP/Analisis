@@ -454,12 +454,10 @@ document.addEventListener('DOMContentLoaded', () => {
         alert("No se puede guardar una tabla sin datos. Por favor, ajuste los filtros.");
         return;
     }
-
-    const isConfirmed = confirm("¿Estás seguro de que quieres guardar el estado actual de la tabla (con los filtros aplicados)?");
+    const isConfirmed = confirm("¿Estás seguro de que quieres guardar el estado actual de la tabla (con los filtros y la visibilidad de columnas aplicados)?");
     if (!isConfirmed) {
         return;
     }
-
     let tableName = prompt("Por favor, introduce un nombre para esta tabla guardada:", "JIRAS_Filtrados");
     if (tableName === null || tableName.trim() === "") {
         alert("Guardado cancelado. Se requiere un nombre para la tabla.");
@@ -470,15 +468,20 @@ document.addEventListener('DOMContentLoaded', () => {
         serializableFilters[key] = Array.from(activeFilters[key]);
     }
 
+    const visibleColumnNames = headers.filter(h => h.visible).map(h => h.name);
+
     const savedTable = {
         id: Date.now(),
         name: tableName.trim(),
         filters: serializableFilters,
+        visibleColumns: visibleColumnNames, 
     };
+
     const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
     savedTables.push(savedTable);
+
     localStorage.setItem('savedTables', JSON.stringify(savedTables));
 
-    alert(`¡Tabla "${tableName.trim()}" guardada con éxito!\nPuedes verla en Tabla-->Tablas Guardadas.`);
-    }
+    alert(`¡Tabla "${tableName.trim()}" guardada con éxito!\nPuedes verla en Tabla --> Tablas Guardadas.`);
+}
 });
