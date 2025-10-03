@@ -40,15 +40,25 @@ function generateChart(data) {
     }
 
     let aggregatedData = {};
+    let subCategories = {};
     const isStateChart = categoryCol === 'Estado';
 
     data.forEach(row => {
         let category;
+        let originalValue;
+
         if (isStateChart) {
-            category = mapStatusToGroup(row[categoryCol] || '');
+            originalValue = row[categoryCol] || '';
+            category = mapStatusToGroup(originalValue);
+            if (category === 'Abiertos') {
+                subCategories[originalValue] = (subCategories[originalValue] || 0) + 1;
+            }
+        } else if (categoryCol === 'Prioridad') {
+            category = mapPriorityToGroup(row[categoryCol]);
         } else {
             category = row[categoryCol] || 'Sin categoría';
         }
+
         aggregatedData[category] = (aggregatedData[category] || 0) + (valueCol === '__count__' ? 1 : (parseFloat(String(row[valueCol]).replace(/,/g, '')) || 0));
     });
     
@@ -63,17 +73,7 @@ function generateChart(data) {
     const labels = Object.keys(aggregatedData);
     const values = Object.values(aggregatedData);
     
-    let chartColors;
-    if (isStateChart) {
-        const stateColorMap = {
-            'Abiertos': '#3498db',
-            'Finalizada': '#2ecc71',
-            'Cancelado': '#e74c3c'
-        };
-        chartColors = labels.map(label => stateColorMap[label] || '#bdc3c7');
-    } else {
-        chartColors = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
-    }
+    const chartColors = getChartColors(isStateChart, labels);
     
     myPieChart = new Chart(ctx, {
         type: 'pie',
@@ -90,7 +90,7 @@ function generateChart(data) {
             maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
-                 datalabels: {
+                datalabels: {
                     display: true,
                     color: '#fff',
                     font: { weight: 'bold', size: 14 },
@@ -108,6 +108,7 @@ function generateChart(data) {
 
     legendContainer.innerHTML = '';
     const ul = document.createElement('ul');
+    
     labels.forEach((label, index) => {
         const value = values[index];
         const percentage = total > 0 ? (value / total * 100).toFixed(2) : 0;
@@ -116,7 +117,16 @@ function generateChart(data) {
         const li = document.createElement('li');
         li.innerHTML = `<span class="legend-swatch" style="background-color: ${color}"></span><span>${label}: ${value.toLocaleString()} (${percentage}%)</span>`;
         ul.appendChild(li);
-        
+
+        if (isStateChart && label === 'Abiertos') {
+            Object.entries(subCategories).forEach(([status, count]) => {
+                const subPercentage = total > 0 ? (count / total * 100).toFixed(2) : 0;
+                const subLi = document.createElement('li');
+                subLi.className = 'sub-item';
+                subLi.innerHTML = `<span>- ${status || '(Vacío)'}: ${count} (${subPercentage}%)</span>`;
+                ul.appendChild(subLi);
+            });
+        }
     });
     legendContainer.appendChild(ul);
 

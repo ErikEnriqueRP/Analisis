@@ -20,10 +20,10 @@ function mapPriorityToGroup(priority) {
     }
     const lowerCasePriority = priority.toLowerCase();
 
-    const highPriorities = ['medium', 'lowest', 'high'];
+    const highPriorities = ['alta', 'crítica', 'highest'];
     if (highPriorities.includes(lowerCasePriority)) {
-        return 'Estandar';
+        return 'Prioridad Alta';
     }
 
-    return 'Highest';
+    return 'Prioridad Regular';
 }
