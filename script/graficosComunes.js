@@ -3,28 +3,27 @@ function mapStatusToGroup(status) {
         return 'Abiertos';
     }
     const lowerCaseStatus = status.toLowerCase();
-
     const finalizadosKeywords = ['finalizada', 'cerrado', 'resuelto'];
     if (finalizadosKeywords.some(keyword => lowerCaseStatus.includes(keyword))) {
         return 'Finalizada';
     }
-
     const canceladosKeywords = ['cancelado'];
     if (canceladosKeywords.some(keyword => lowerCaseStatus.includes(keyword))) {
         return 'Cancelado';
     }
-
     return 'Abiertos';
 }
--
+
 function mapPriorityToGroup(priority) {
     if (!priority) {
-        return 'Regular';
+        return 'Prioridad Regular';
     }
     const lowerCasePriority = priority.toLowerCase();
-    if (lowerCasePriority === 'highest') {
-        return 'Highest';
-    } else {
-        return 'Regular';
+
+    const highPriorities = ['medium', 'lowest', 'high'];
+    if (highPriorities.includes(lowerCasePriority)) {
+        return 'Estandar';
     }
+
+    return 'Highest';
 }
