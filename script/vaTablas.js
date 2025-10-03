@@ -1,56 +1,4 @@
 Chart.register(ChartDataLabels);
-const defaultVisibleColumns = ['Area','Clave de incidencia','Resumen','Prioridad','Estado','Creada','Actualizada'];
-document.addEventListener('DOMContentLoaded', () => {
-    const mainCsvData = localStorage.getItem('csvData');
-    const savedTablesData = localStorage.getItem('savedTables');
-    const container = document.getElementById('dashboard-container');
-    const deleteAllBtn = document.getElementById('deleteAllTablesBtn');
-    const exportAllBtn = document.getElementById('exportAllBtn');
-
-    if (!mainCsvData) {
-        container.innerHTML = '<p class="error-msg">No se encontraron datos base. Por favor, <a href="index.html">carga un archivo CSV</a> primero.</p>';
-        if (deleteAllBtn) deleteAllBtn.style.display = 'none';
-        return;
-    }
-
-    const savedTables = JSON.parse(savedTablesData || '[]');
-
-    if (savedTables.length === 0) {
-        container.innerHTML = '<p class="info-msg">Aún no has guardado ninguna tabla. Ve a la <a href="tabla.html">página de la tabla</a> para filtrar y guardar una vista.</p>';
-        if (deleteAllBtn) deleteAllBtn.style.display = 'none';
-        if (exportAllBtn) exportAllBtn.style.display = 'none'; 
-        return;
-    }
-
-    if (deleteAllBtn) {
-        deleteAllBtn.style.display = 'inline-block';
-        deleteAllBtn.addEventListener('click', deleteAllTables);
-    }
-
-    if (exportAllBtn) { 
-        exportAllBtn.style.display = 'inline-block';
-        exportAllBtn.addEventListener('click', exportAllTablesToExcel);
-    }
-
-    Papa.parse(mainCsvData, {
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {
-            let fullData = results.data;
-            let headers = results.meta.fields;
-
-            const processedResult = applyAreaAndCustomColumns(fullData, headers);
-            fullData = processedResult.processedData;
-            headers = processedResult.updatedHeaders;
-
-            savedTables.forEach(table => {
-                const filtered = applySavedFilters(fullData, table.filters);
-                const tableCard = createTableCard(table, filtered, headers);
-                container.appendChild(tableCard);
-            });
-        }
-    });
-});
 
 function parseSpanishDate(dateString) {
     if (!dateString) return null;
@@ -78,6 +26,95 @@ function getMonthFromString(dateString) {
     if (!dateString) return null;
     const date = parseSpanishDate(dateString);
     return date ? date.getUTCMonth() : null;
+}
+
+const defaultVisibleColumns = ['Area','Clave de incidencia','Resumen','Prioridad','Estado','Creada','Actualizada'];
+
+function getChartColors(isStateChart, labels) {
+    if (isStateChart) {
+        const stateColorMap = { 'Abiertos': '#3498db', 'Finalizada': '#2ecc71', 'Cancelado': '#e74c3c' };
+        return labels.map(label => stateColorMap[label] || '#bdc3c7');
+    }
+    return ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const mainCsvData = localStorage.getItem('csvData');
+    const savedTablesData = localStorage.getItem('savedTables');
+    const container = document.getElementById('dashboard-container');
+    const deleteAllBtn = document.getElementById('deleteAllTablesBtn');
+    const exportAllBtn = document.getElementById('exportAllBtn');
+
+    if (!mainCsvData) {
+        container.innerHTML = '<p class="error-msg">No se encontraron datos base. Por favor, <a href="index.html">carga un archivo CSV</a> primero.</p>';
+        if (deleteAllBtn) deleteAllBtn.style.display = 'none';
+        if (exportAllBtn) exportAllBtn.style.display = 'none';
+        return;
+    }
+    
+    const savedTables = JSON.parse(savedTablesData || '[]');
+
+    if (savedTables.length === 0) {
+        container.innerHTML = '<p class="info-msg">Aún no has guardado ninguna tabla. Ve a la <a href="tabla.html">página de la tabla</a> para filtrar y guardar una vista.</p>';
+        if (deleteAllBtn) deleteAllBtn.style.display = 'none';
+        if (exportAllBtn) exportAllBtn.style.display = 'none';
+        return;
+    }
+
+    if (deleteAllBtn) {
+        deleteAllBtn.style.display = 'inline-block';
+        deleteAllBtn.addEventListener('click', deleteAllTables);
+    }
+    if (exportAllBtn) {
+        exportAllBtn.style.display = 'inline-block';
+        exportAllBtn.addEventListener('click', exportAllTablesToExcel);
+    }
+    
+    Papa.parse(mainCsvData, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+            let fullData = results.data;
+            let headers = results.meta.fields;
+
+            const processedResult = applyAreaAndCustomColumns(fullData, headers);
+            fullData = processedResult.processedData;
+            headers = processedResult.updatedHeaders;
+            
+            savedTables.forEach(table => {
+                const filtered = applySavedFilters(fullData, table.filters);
+                const tableCard = createTableCard(table, filtered, headers);
+                container.appendChild(tableCard);
+            });
+        }
+    });
+});
+
+function applyAreaAndCustomColumns(data, currentHeaders) {
+    const numCharsForArea = 2;
+    const areaColumnName = 'Area';
+    const summaryColumnName = 'Resumen';
+    if (currentHeaders.some(h => h === summaryColumnName) && !currentHeaders.some(h => h === areaColumnName)) {
+        currentHeaders.unshift(areaColumnName);
+    }
+    data.forEach(row => {
+        const sourceValue = row[summaryColumnName] || '';
+        row[areaColumnName] = sourceValue.substring(0, numCharsForArea);
+    });
+    const leftColumnConfig = JSON.parse(localStorage.getItem('leftColumnConfig') || 'null');
+    if (leftColumnConfig && leftColumnConfig.enabled && leftColumnConfig.source && leftColumnConfig.newName) {
+        const newName = leftColumnConfig.newName.trim();
+        if (currentHeaders.some(h => h === leftColumnConfig.source) && !currentHeaders.some(h => h === newName)) {
+            currentHeaders.push(newName);
+        }
+        data.forEach(row => {
+            const src = row[leftColumnConfig.source] || '';
+            const leftPart = src.substring(0, Math.max(0, leftColumnConfig.numChars));
+            const concatPart = leftColumnConfig.concat && row[leftColumnConfig.concat] ? (row[leftColumnConfig.concat] || '') : '';
+            row[newName] = concatPart ? `${leftPart}_${concatPart}` : leftPart;
+        });
+    }
+    return { processedData: data, updatedHeaders: currentHeaders };
 }
 
 function applySavedFilters(data, filters) {
@@ -117,7 +154,8 @@ function applySavedFilters(data, filters) {
 function createTableCard(tableInfo, data, headers) {
     const card = document.createElement('div');
     card.className = 'table-card';
-    card.dataset.visibleColumns = JSON.stringify(tableInfo.visibleColumns);
+    const initialVisibleColumns = tableInfo.visibleColumns || defaultVisibleColumns;
+    card.dataset.visibleColumns = JSON.stringify(initialVisibleColumns);
 
     const header = document.createElement('div');
     header.className = 'accordion-header';
@@ -156,7 +194,7 @@ function createTableCard(tableInfo, data, headers) {
     controlsWrapper.className = 'table-card-controls';
     const toggleColumnsBtn = document.createElement('button');
     toggleColumnsBtn.className = 'btn btn-blue';
-    toggleColumnsBtn.textContent = 'Mostrar Todo'; 
+    toggleColumnsBtn.textContent = initialVisibleColumns.length === headers.length ? 'Mostrar Predeterminadas' : 'Mostrar Todo';
     toggleColumnsBtn.onclick = () => {
         const currentVisible = JSON.parse(card.dataset.visibleColumns);
         if (currentVisible.length === headers.length) { 
@@ -210,7 +248,6 @@ function createTableCard(tableInfo, data, headers) {
 function aggregateChartData(chartInfo, tableData) {
     let aggregatedData = {};
     const isStateChart = chartInfo.categoryCol === 'Estado';
-
     tableData.forEach(row => {
         let category;
         if (isStateChart) {
@@ -218,7 +255,6 @@ function aggregateChartData(chartInfo, tableData) {
         } else {
             category = row[chartInfo.categoryCol] || 'Sin categoría';
         }
-        
         if (chartInfo.valueCol === '__count__') {
             aggregatedData[category] = (aggregatedData[category] || 0) + 1;
         } else {
@@ -232,27 +268,22 @@ function aggregateChartData(chartInfo, tableData) {
 function renderSingleSavedChart(chartInfo, tableData, tableId) {
     const chartsContainer = document.getElementById(`charts-for-${tableId}`);
     if (!chartsContainer) return;
-
     const chartCard = document.createElement('div');
     chartCard.className = 'chart-card';
     chartCard.id = `chart-card-${chartInfo.id}`;
-
     const chartHeader = document.createElement('div');
     chartHeader.className = 'chart-card-header';
     chartHeader.innerHTML = `<h4>${chartInfo.title}</h4>`;
-
     const deleteChartBtn = document.createElement('button');
     deleteChartBtn.className = 'btn-delete-single';
     deleteChartBtn.textContent = '×';
     deleteChartBtn.title = 'Borrar este gráfico';
     deleteChartBtn.onclick = () => deleteSingleChart(tableId, chartInfo.id);
     chartHeader.appendChild(deleteChartBtn);
-
     const canvasContainer = document.createElement('div');
     canvasContainer.className = 'chart-card-body';
     const canvas = document.createElement('canvas');
     canvasContainer.appendChild(canvas);
-
     const chartFooter = document.createElement('div');
     chartFooter.className = 'chart-card-footer';
     const detailsBtn = document.createElement('button');
@@ -260,44 +291,39 @@ function renderSingleSavedChart(chartInfo, tableData, tableId) {
     detailsBtn.textContent = 'Ver Detalles';
     detailsBtn.onclick = () => showChartDetails(chartInfo, tableData);
     chartFooter.appendChild(detailsBtn);
-
     chartCard.appendChild(chartHeader);
     chartCard.appendChild(canvasContainer);
     chartCard.appendChild(chartFooter);
     chartsContainer.appendChild(chartCard);
-
     const aggregatedData = aggregateChartData(chartInfo, tableData);
     const total = Object.values(aggregatedData).reduce((sum, value) => sum + value, 0);
     const labels = Object.keys(aggregatedData);
     const isStateChart = chartInfo.categoryCol === 'Estado';
     const chartColors = getChartColors(isStateChart, labels);
-
     new Chart(canvas.getContext('2d'), {
         type: 'pie',
         data: {
-            labels: Object.keys(aggregatedData),
+            labels: labels,
             datasets: [{
                 data: Object.values(aggregatedData),
                 backgroundColor: chartColors,
             }]
         },
-       options: { 
-            responsive: true, 
+        options: {
+            responsive: true,
             maintainAspectRatio: false,
-            plugins: { 
+            plugins: {
                 legend: { display: false },
                 datalabels: {
                     display: true,
                     color: '#fff',
-                    font: { 
-                        weight: 'bold', size: 12 
-                    },
+                    font: { weight: 'bold', size: 12 },
                     textStrokeColor: 'black',
                     textStrokeWidth: 2,
                     formatter: (value, ctx) => {
                         const percentage = (value / total * 100);
                         if (percentage < 8) return null;
-                        return percentage.toFixed(0) + '%'; 
+                        return percentage.toFixed(0) + '%';
                     }
                 }
             }
@@ -310,49 +336,35 @@ async function showChartDetails(chartInfo, tableData) {
     const title = document.getElementById('chartDetailTitle');
     const image = document.getElementById('chartDetailImage');
     const legendContainer = document.getElementById('chartDetailLegend');
-
     title.textContent = chartInfo.title;
-    image.src = ''; 
+    image.src = '';
     legendContainer.innerHTML = '<p>Generando vista...</p>';
     modal.style.display = 'flex';
-
     const imageUrl = await generateChartImage(chartInfo, tableData);
     image.src = imageUrl;
-
     const aggregatedData = aggregateChartData(chartInfo, tableData);
     const total = Object.values(aggregatedData).reduce((sum, value) => sum + value, 0);
     const labels = Object.keys(aggregatedData);
     const isStateChart = chartInfo.categoryCol === 'Estado';
     const chartColors = getChartColors(isStateChart, labels);
-    
     let legendHtml = '<ul>';
     labels.forEach((label, index) => {
         const value = aggregatedData[label];
         const percentage = total > 0 ? (value / total * 100).toFixed(2) : 0;
         const color = chartColors[index];
-
-        legendHtml += `
-            <li>
-                <span class="legend-swatch" style="background-color: ${color}"></span>
-                <span>${label}: ${value.toLocaleString()} (${percentage}%)</span>
-            </li>
-        `;
+        legendHtml += `<li><span class="legend-swatch" style="background-color: ${color}"></span><span>${label}: ${value.toLocaleString()} (${percentage}%)</span></li>`;
     });
     legendHtml += '</ul>';
-    
     legendContainer.innerHTML = legendHtml;
 }
 
 function deleteSingleChart(tableId, chartId) {
     if (!confirm("¿Estás seguro de que quieres borrar este gráfico?")) return;
-
     const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
     const tableToUpdate = savedTables.find(table => table.id === tableId);
-
     if (tableToUpdate && tableToUpdate.charts) {
         tableToUpdate.charts = tableToUpdate.charts.filter(chart => chart.id !== chartId);
         localStorage.setItem('savedTables', JSON.stringify(savedTables));
-        
         const chartCardElement = document.getElementById(`chart-card-${chartId}`);
         if (chartCardElement) {
             chartCardElement.remove();
@@ -367,29 +379,23 @@ function renderTablePage(tableId, data, headers, rowsPerPage) {
     if (!panel || !tableContainer) return;
     const visibleColumns = JSON.parse(card.dataset.visibleColumns);
     const visibleHeaders = headers.filter(h => visibleColumns.includes(h));
-
     const currentPage = parseInt(panel.dataset.currentPage, 10);
     const startIndex = (currentPage - 1) * rowsPerPage;
     const endIndex = startIndex + rowsPerPage;
     const paginatedData = data.slice(startIndex, endIndex);
-
     let tableHTML = '<table><thead><tr>';
     visibleHeaders.forEach(h => { tableHTML += `<th>${h}</th>`; });
     tableHTML += '</tr></thead><tbody>';
-
     if (paginatedData.length > 0) {
         paginatedData.forEach(row => {
             tableHTML += '<tr>';
             visibleHeaders.forEach(h => { tableHTML += `<td>${row[h] || ''}</td>`; });
             tableHTML += '</tr>';
         });
-    } else { /* ... */ }
-
+    }
     tableHTML += '</tbody></table>';
     tableContainer.innerHTML = tableHTML;
-
     renderPaginationControls(tableId, data, headers, rowsPerPage);
-    
     if (panel.style.maxHeight) {
         panel.style.maxHeight = panel.scrollHeight + "px";
     }
@@ -399,26 +405,17 @@ function renderPaginationControls(tableId, data, headers, rowsPerPage) {
     const panel = document.querySelector(`#pagination-controls-${tableId}`).parentElement;
     const paginationContainer = document.querySelector(`#pagination-controls-${tableId}`);
     if (!panel || !paginationContainer) return;
-
     const currentPage = parseInt(panel.dataset.currentPage, 10);
     const totalPages = Math.ceil(data.length / rowsPerPage);
-
     if (totalPages <= 1) {
         paginationContainer.innerHTML = '';
         return;
     }
-
-    paginationContainer.innerHTML = `
-        <button class="btn-pagination" id="prev-${tableId}" ${currentPage === 1 ? 'disabled' : ''}>&laquo; Anterior</button>
-        <span>Página ${currentPage} de ${totalPages}</span>
-        <button class="btn-pagination" id="next-${tableId}" ${currentPage === totalPages ? 'disabled' : ''}>Siguiente &raquo;</button>
-    `;
-
+    paginationContainer.innerHTML = `<button class="btn-pagination" id="prev-${tableId}" ${currentPage === 1 ? 'disabled' : ''}>&laquo; Anterior</button><span>Página ${currentPage} de ${totalPages}</span><button class="btn-pagination" id="next-${tableId}" ${currentPage === totalPages ? 'disabled' : ''}>Siguiente &raquo;</button>`;
     document.getElementById(`prev-${tableId}`).addEventListener('click', () => {
         panel.dataset.currentPage = currentPage - 1;
         renderTablePage(tableId, data, headers, rowsPerPage);
     });
-
     document.getElementById(`next-${tableId}`).addEventListener('click', () => {
         panel.dataset.currentPage = currentPage + 1;
         renderTablePage(tableId, data, headers, rowsPerPage);
@@ -443,45 +440,13 @@ function deleteAllTables() {
     }
 }
 
-function applyAreaAndCustomColumns(data, currentHeaders) {
-    const numCharsForArea = 2;
-    const areaColumnName = 'Area';
-    const summaryColumnName = 'Resumen';
-
-    if (currentHeaders.some(h => h === summaryColumnName) && !currentHeaders.some(h => h === areaColumnName)) {
-        currentHeaders.unshift(areaColumnName);
-    }
-    data.forEach(row => {
-        const sourceValue = row[summaryColumnName] || '';
-        row[areaColumnName] = sourceValue.substring(0, numCharsForArea);
-    });
-
-    const leftColumnConfig = JSON.parse(localStorage.getItem('leftColumnConfig') || 'null');
-    if (leftColumnConfig && leftColumnConfig.enabled && leftColumnConfig.source && leftColumnConfig.newName) {
-        const newName = leftColumnConfig.newName.trim();
-        if (currentHeaders.some(h => h === leftColumnConfig.source) && !currentHeaders.some(h => h === newName)) {
-            currentHeaders.push(newName);
-        }
-        data.forEach(row => {
-            const src = row[leftColumnConfig.source] || '';
-            const leftPart = src.substring(0, Math.max(0, leftColumnConfig.numChars));
-            const concatPart = leftColumnConfig.concat && row[leftColumnConfig.concat] ? (row[leftColumnConfig.concat] || '') : '';
-            row[newName] = concatPart ? `${leftPart}_${concatPart}` : leftPart;
-        });
-    }
-
-    return { processedData: data, updatedHeaders: currentHeaders };
-}
-
 async function exportAllTablesToExcel() {
     const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
     const mainCsvData = localStorage.getItem('csvData');
-
     if (savedTables.length === 0 || !mainCsvData) {
         alert("No hay tablas guardadas o datos base para exportar.");
         return;
     }
-
     const parsedData = await new Promise(resolve => {
         Papa.parse(mainCsvData, {
             header: true,
@@ -489,22 +454,16 @@ async function exportAllTablesToExcel() {
             complete: results => resolve(results)
         });
     });
-
     let fullData = parsedData.data;
     let headers = parsedData.meta.fields;
-
     const processedResult = applyAreaAndCustomColumns(fullData, headers);
     fullData = processedResult.processedData;
     headers = processedResult.updatedHeaders;
-
     const workbook = new ExcelJS.Workbook();
-
     for (const table of savedTables) {
         const sheetName = table.name.replace(/[\\/*?[\]:]/g, "").substring(0, 31);
         const worksheet = workbook.addWorksheet(sheetName);
-
         const dataForSheet = applySavedFilters(fullData, table.filters);
-
         const cardElement = document.querySelector(`#charts-for-${table.id}`)?.closest('.table-card');
         let visibleColumnsForExport;
         if (cardElement && cardElement.dataset.visibleColumns) {
@@ -512,11 +471,8 @@ async function exportAllTablesToExcel() {
         } else {
             visibleColumnsForExport = table.visibleColumns || defaultVisibleColumns;
         }
-
         const visibleHeadersForExport = headers.filter(h => visibleColumnsForExport.includes(h));
-
         worksheet.columns = visibleHeadersForExport.map(h => ({ header: h, key: h, width: 20 }));
-        
         const dataToExport = dataForSheet.map(row => {
             let exportRow = {};
             visibleHeadersForExport.forEach(h => {
@@ -525,46 +481,37 @@ async function exportAllTablesToExcel() {
             return exportRow;
         });
         worksheet.addRows(dataToExport);
-
         worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
         worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF34495E' } };
-
         if (table.charts && table.charts.length > 0) {
             let chartRowStart = worksheet.rowCount + 3;
-
             for (const chartInfo of table.charts) {
                 const aggregatedData = aggregateChartData(chartInfo, dataForSheet);
                 const total = Object.values(aggregatedData).reduce((sum, val) => sum + val, 0);
                 const fullDataUrl = await generateChartImage(chartInfo, dataForSheet);
-
                 if (fullDataUrl && fullDataUrl.startsWith('data:image/png;base64,')) {
                     const base64Image = fullDataUrl.split(',')[1];
                     if (base64Image) {
                         const imageId = workbook.addImage({ base64: base64Image, extension: 'png' });
                         worksheet.addImage(imageId, {
                             tl: { col: 1, row: chartRowStart },
-                            br: { col: 5, row: chartRowStart + 20 }
+                            br: { col: 9, row: chartRowStart + 20 }
                         });
                     }
                 }
-
                 const dataTableStartRow = chartRowStart + 1;
                 const dataTableStartCol = 11;
-
                 const titleCell = worksheet.getCell(dataTableStartRow - 1, dataTableStartCol);
                 titleCell.value = chartInfo.title;
                 titleCell.font = { bold: true, size: 14 };
-
                 const headerRow = worksheet.getRow(dataTableStartRow);
                 headerRow.getCell(dataTableStartCol).value = 'Categoría';
                 headerRow.getCell(dataTableStartCol + 1).value = 'Valor';
                 headerRow.getCell(dataTableStartCol + 2).value = 'Porcentaje';
                 headerRow.font = { bold: true };
-                
                 headerRow.getCell(dataTableStartCol).alignment = { horizontal: 'center' };
                 headerRow.getCell(dataTableStartCol + 1).alignment = { horizontal: 'center' };
                 headerRow.getCell(dataTableStartCol + 2).alignment = { horizontal: 'center' };
-
                 let currentRowNum = dataTableStartRow + 1;
                 Object.entries(aggregatedData).forEach(([label, value]) => {
                     const percentage = total > 0 ? (value / total) : 0;
@@ -575,25 +522,21 @@ async function exportAllTablesToExcel() {
                     row.getCell(dataTableStartCol + 2).numFmt = '0.00%';
                     currentRowNum++;
                 });
-
                 const totalRow = worksheet.getRow(currentRowNum);
                 totalRow.getCell(dataTableStartCol).value = 'Total';
                 totalRow.getCell(dataTableStartCol + 1).value = total;
                 totalRow.getCell(dataTableStartCol + 2).value = 1;
                 totalRow.font = { bold: true };
                 totalRow.getCell(dataTableStartCol + 2).numFmt = '0.00%';
-
                 worksheet.getColumn(dataTableStartCol).width = 20;
                 worksheet.getColumn(dataTableStartCol + 1).width = 15;
                 worksheet.getColumn(dataTableStartCol + 2).width = 15;
-
                 chartRowStart += 25;
             }
         }
     }
-
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), 'Tablas_JIRAS.xlsx');
+    saveAs(new Blob([buffer]), 'TablasGuardadas_ConGraficos.xlsx');
 }
 
 async function generateChartImage(chartInfo, tableData) {
@@ -603,17 +546,14 @@ async function generateChartImage(chartInfo, tableData) {
     container.style.position = 'absolute';
     container.style.top = '-9999px';
     container.style.left = '-9999px';
-
     const canvas = document.createElement('canvas');
     container.appendChild(canvas);
     document.body.appendChild(container);
-
     const aggregatedData = aggregateChartData(chartInfo, tableData);
     const labels = Object.keys(aggregatedData);
     const isStateChart = chartInfo.categoryCol === 'Estado';
     const chartColors = getChartColors(isStateChart, labels);
     const total = Object.values(aggregatedData).reduce((sum, value) => sum + value, 0);
-
     new Chart(canvas, {
         type: 'pie',
         data: {
@@ -644,9 +584,7 @@ async function generateChartImage(chartInfo, tableData) {
             }
         }
     });
-
     await new Promise(resolve => setTimeout(resolve, 100));
-
     try {
         const dataUrl = await domtoimage.toPng(container);
         return dataUrl;
@@ -657,16 +595,3 @@ async function generateChartImage(chartInfo, tableData) {
         document.body.removeChild(container);
     }
 }
-
-function getChartColors(isStateChart, labels) {
-    if (isStateChart) {
-        const stateColorMap = {
-            'Abiertos': '#3498db',   
-            'Finalizada': '#2ecc71',
-            'Cancelado': '#e74c3c'    
-        };
-        return labels.map(label => stateColorMap[label] || '#bdc3c7'); 
-    }
-    return ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
-}
-
