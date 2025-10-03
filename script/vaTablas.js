@@ -247,14 +247,18 @@ function createTableCard(tableInfo, data, headers) {
 
 function aggregateChartData(chartInfo, tableData) {
     let aggregatedData = {};
-    const isStateChart = chartInfo.categoryCol === 'Estado';
+    const categoryCol = chartInfo.categoryCol;
+
     tableData.forEach(row => {
         let category;
-        if (isStateChart) {
+        if (categoryCol === 'Estado') {
             category = mapStatusToGroup(row['Estado']);
+        } else if (categoryCol === 'Prioridad') {
+            category = mapPriorityToGroup(row['Prioridad']);
         } else {
-            category = row[chartInfo.categoryCol] || 'Sin categoría';
+            category = row[categoryCol] || 'Sin categoría';
         }
+        
         if (chartInfo.valueCol === '__count__') {
             aggregatedData[category] = (aggregatedData[category] || 0) + 1;
         } else {
@@ -443,10 +447,12 @@ function deleteAllTables() {
 async function exportAllTablesToExcel() {
     const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
     const mainCsvData = localStorage.getItem('csvData');
+
     if (savedTables.length === 0 || !mainCsvData) {
         alert("No hay tablas guardadas o datos base para exportar.");
         return;
     }
+
     const parsedData = await new Promise(resolve => {
         Papa.parse(mainCsvData, {
             header: true,
@@ -454,15 +460,30 @@ async function exportAllTablesToExcel() {
             complete: results => resolve(results)
         });
     });
+
     let fullData = parsedData.data;
     let headers = parsedData.meta.fields;
+
     const processedResult = applyAreaAndCustomColumns(fullData, headers);
     fullData = processedResult.processedData;
     headers = processedResult.updatedHeaders;
+
     const workbook = new ExcelJS.Workbook();
+    const usedSheetNames = new Set(); 
+
     for (const table of savedTables) {
-        const sheetName = table.name.replace(/[\\/*?[\]:]/g, "").substring(0, 31);
-        const worksheet = workbook.addWorksheet(sheetName);
+        let baseSheetName = table.name.replace(/[\\/*?[\]:]/g, "").substring(0, 26); 
+        let uniqueSheetName = baseSheetName;
+        let counter = 1;
+
+        while (usedSheetNames.has(uniqueSheetName)) {
+            uniqueSheetName = `${baseSheetName} (${counter})`;
+            counter++;
+        }
+        
+        usedSheetNames.add(uniqueSheetName);
+        const worksheet = workbook.addWorksheet(uniqueSheetName);
+
         const dataForSheet = applySavedFilters(fullData, table.filters);
         const cardElement = document.querySelector(`#charts-for-${table.id}`)?.closest('.table-card');
         let visibleColumnsForExport;
@@ -483,6 +504,7 @@ async function exportAllTablesToExcel() {
         worksheet.addRows(dataToExport);
         worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
         worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF34495E' } };
+
         if (table.charts && table.charts.length > 0) {
             let chartRowStart = worksheet.rowCount + 3;
             for (const chartInfo of table.charts) {
@@ -535,6 +557,7 @@ async function exportAllTablesToExcel() {
             }
         }
     }
+
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), 'TablasGuardadas_ConGraficos.xlsx');
 }

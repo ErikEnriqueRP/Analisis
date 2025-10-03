@@ -16,3 +16,15 @@ function mapStatusToGroup(status) {
 
     return 'Abiertos';
 }
+-
+function mapPriorityToGroup(priority) {
+    if (!priority) {
+        return 'Regular';
+    }
+    const lowerCasePriority = priority.toLowerCase();
+    if (lowerCasePriority === 'highest') {
+        return 'Highest';
+    } else {
+        return 'Regular';
+    }
+}

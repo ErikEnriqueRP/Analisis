@@ -249,6 +249,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let category;
             if (categoryCol === 'Estado') {
                 category = mapStatusToGroup(row[categoryCol]);
+            } else if (categoryCol === 'Prioridad') {
+                category = mapPriorityToGroup(row[categoryCol]);
             } else {
                 category = row[categoryCol] || 'Sin categoría';
             }
@@ -260,6 +262,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let category;
             if (categoryCol === 'Estado') {
                 category = mapStatusToGroup(row[categoryCol]);
+            } else if (categoryCol === 'Prioridad') {
+                category = mapPriorityToGroup(row[categoryCol]);
             } else {
                 category = row[categoryCol] || 'Sin categoría';
             }
@@ -268,7 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return acc;
         }, {});
     }
-
     drawPieChart(aggregatedData, valueCol === '__count__' ? 'Conteo' : valueCol);
     }
 
