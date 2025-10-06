@@ -447,12 +447,10 @@ function deleteAllTables() {
 async function exportAllTablesToExcel() {
     const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
     const mainCsvData = localStorage.getItem('csvData');
-
     if (savedTables.length === 0 || !mainCsvData) {
         alert("No hay tablas guardadas o datos base para exportar.");
         return;
     }
-
     const parsedData = await new Promise(resolve => {
         Papa.parse(mainCsvData, {
             header: true,
@@ -460,30 +458,23 @@ async function exportAllTablesToExcel() {
             complete: results => resolve(results)
         });
     });
-
     let fullData = parsedData.data;
     let headers = parsedData.meta.fields;
-
     const processedResult = applyAreaAndCustomColumns(fullData, headers);
     fullData = processedResult.processedData;
     headers = processedResult.updatedHeaders;
-
     const workbook = new ExcelJS.Workbook();
-    const usedSheetNames = new Set(); 
-
+    const usedSheetNames = new Set();
     for (const table of savedTables) {
-        let baseSheetName = table.name.replace(/[\\/*?[\]:]/g, "").substring(0, 26); 
+        let baseSheetName = table.name.replace(/[\\/*?[\]:]/g, "").substring(0, 26);
         let uniqueSheetName = baseSheetName;
         let counter = 1;
-
         while (usedSheetNames.has(uniqueSheetName)) {
             uniqueSheetName = `${baseSheetName} (${counter})`;
             counter++;
         }
-        
         usedSheetNames.add(uniqueSheetName);
         const worksheet = workbook.addWorksheet(uniqueSheetName);
-
         const dataForSheet = applySavedFilters(fullData, table.filters);
         const cardElement = document.querySelector(`#charts-for-${table.id}`)?.closest('.table-card');
         let visibleColumnsForExport;
@@ -502,9 +493,11 @@ async function exportAllTablesToExcel() {
             return exportRow;
         });
         worksheet.addRows(dataToExport);
-        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF34495E' } };
-
+        visibleHeadersForExport.forEach((header, index) => {
+            const cell = worksheet.getCell(1, index + 1);
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF34495E' } };
+        });
         if (table.charts && table.charts.length > 0) {
             let chartRowStart = worksheet.rowCount + 3;
             for (const chartInfo of table.charts) {
@@ -516,24 +509,29 @@ async function exportAllTablesToExcel() {
                     if (base64Image) {
                         const imageId = workbook.addImage({ base64: base64Image, extension: 'png' });
                         worksheet.addImage(imageId, {
-                            tl: { col: 1, row: chartRowStart },
-                            br: { col: 9, row: chartRowStart + 20 }
+                            tl: { col: 0, row: chartRowStart }, 
+                            br: { col: 4, row: chartRowStart + 18 }
                         });
                     }
                 }
                 const dataTableStartRow = chartRowStart + 1;
-                const dataTableStartCol = 11;
-                const titleCell = worksheet.getCell(dataTableStartRow - 1, dataTableStartCol);
-                titleCell.value = chartInfo.title;
-                titleCell.font = { bold: true, size: 14 };
+                const dataTableStartCol = 5; 
+
+                //const titleCell = worksheet.getCell(dataTableStartRow - 1, dataTableStartCol);
+                //titleCell.value = chartInfo.title;
+                //titleCell.font = { bold: true, size: 14 };
                 const headerRow = worksheet.getRow(dataTableStartRow);
+                const headerStyle = {
+                    font: { bold: true, color: { argb: 'FFFFFFFF' } },
+                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF000000' } },
+                    alignment: { horizontal: 'center' }
+                };
                 headerRow.getCell(dataTableStartCol).value = 'Categoría';
                 headerRow.getCell(dataTableStartCol + 1).value = 'Valor';
                 headerRow.getCell(dataTableStartCol + 2).value = 'Porcentaje';
-                headerRow.font = { bold: true };
-                headerRow.getCell(dataTableStartCol).alignment = { horizontal: 'center' };
-                headerRow.getCell(dataTableStartCol + 1).alignment = { horizontal: 'center' };
-                headerRow.getCell(dataTableStartCol + 2).alignment = { horizontal: 'center' };
+                headerRow.getCell(dataTableStartCol).style = headerStyle;
+                headerRow.getCell(dataTableStartCol + 1).style = headerStyle;
+                headerRow.getCell(dataTableStartCol + 2).style = headerStyle;
                 let currentRowNum = dataTableStartRow + 1;
                 Object.entries(aggregatedData).forEach(([label, value]) => {
                     const percentage = total > 0 ? (value / total) : 0;
@@ -551,13 +549,13 @@ async function exportAllTablesToExcel() {
                 totalRow.font = { bold: true };
                 totalRow.getCell(dataTableStartCol + 2).numFmt = '0.00%';
                 worksheet.getColumn(dataTableStartCol).width = 20;
-                worksheet.getColumn(dataTableStartCol + 1).width = 15;
-                worksheet.getColumn(dataTableStartCol + 2).width = 15;
-                chartRowStart += 25;
+                worksheet.getColumn(dataTableStartCol + 1).width = 12;
+                worksheet.getColumn(dataTableStartCol + 2).width = 12;
+                
+                chartRowStart += 22;
             }
         }
     }
-
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), 'TablasGuardadas_ConGraficos.xlsx');
 }
@@ -569,14 +567,17 @@ async function generateChartImage(chartInfo, tableData) {
     container.style.position = 'absolute';
     container.style.top = '-9999px';
     container.style.left = '-9999px';
+
     const canvas = document.createElement('canvas');
     container.appendChild(canvas);
     document.body.appendChild(container);
+
     const aggregatedData = aggregateChartData(chartInfo, tableData);
     const labels = Object.keys(aggregatedData);
     const isStateChart = chartInfo.categoryCol === 'Estado';
     const chartColors = getChartColors(isStateChart, labels);
     const total = Object.values(aggregatedData).reduce((sum, value) => sum + value, 0);
+
     new Chart(canvas, {
         type: 'pie',
         data: {
@@ -591,6 +592,7 @@ async function generateChartImage(chartInfo, tableData) {
             maintainAspectRatio: false,
             animation: { duration: 1 },
             plugins: {
+                
                 title: { display: true, text: chartInfo.title, font: { size: 16 } },
                 datalabels: {
                     display: true,
@@ -598,18 +600,18 @@ async function generateChartImage(chartInfo, tableData) {
                     font: { weight: 'bold' },
                     formatter: (value, ctx) => {
                         const percentage = (value / total * 100);
-                        if (percentage < 4) {
-                            return null;
-                        }
+                        if (percentage < 4) return null;
                         return percentage.toFixed(1) + '%';
                     }
                 }
             }
         }
     });
+
     await new Promise(resolve => setTimeout(resolve, 100));
+
     try {
-        const dataUrl = await domtoimage.toPng(container);
+        const dataUrl = await domtoimage.toPng(canvas); 
         return dataUrl;
     } catch (error) {
         console.error('No se pudo generar la imagen del gráfico:', error);
