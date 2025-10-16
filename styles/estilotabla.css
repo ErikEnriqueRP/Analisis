@@ -364,43 +364,45 @@ th:hover .filter-icon {
     border: 1px solid #ccc; 
     border-radius: 4px; 
 }
-.filter-options-list { 
-    max-height: 300px; 
-    overflow-y: auto; 
-    border: 1px solid #eee; 
-    padding: 10px; 
-    margin-bottom: 1rem; 
-    border-radius: var(--border-radius); 
+
+.modal-options-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    padding: 10px;
+    margin-bottom: 1rem;
+    border-radius: var(--border-radius);
+    display: flex;
+    flex-direction: column;
+    gap: 5px; 
 }
-.filter-options-list label { 
-    display: block; 
-    padding: 5px; 
-    border-radius: 3px; 
-    cursor: pointer; 
-    display: flex; 
-    align-items: center; 
-    gap: 8px; 
-    user-select: none; 
+
+.modal-options-list label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px;
+    border-radius: 3px;
+    cursor: pointer;
+    user-select: none;
 }
-.filter-options-list label:hover { 
-    background-color: #f4f7f6; 
+
+.modal-options-list label:hover {
+    background-color: #f4f7f6;
 }
-.filter-options-list input[type="checkbox"] { 
-    width: 16px; 
-    height: 16px; 
-    flex-shrink: 0; 
+
+.modal-options-list input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
 }
+
 .modal-actions { 
     text-align: right; 
     display: flex; 
     gap: 10px; 
     justify-content: flex-end; 
     margin-top: 1rem; 
-}
-
-.modal-options-list {
-    border: none;
-    padding: 0;
 }
 
 .accordion-year-header {
