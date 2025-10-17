@@ -245,9 +245,12 @@ function getMonthFromString(dateString) {
 }
 
 function parseSpanishDate(dateString) {
-    if (!dateString || typeof dateString !== 'string') return null;
+    if (!dateString || typeof dateString !== 'string') {
+        return null;
+    }
+
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        return new Date(dateString);
+        return new Date(dateString + 'T00:00:00Z');
     }
 
     const monthMap = {
@@ -258,7 +261,9 @@ function parseSpanishDate(dateString) {
     };
 
     const parts = dateString.toLowerCase().replace(/ de /g, ' ').split(/[/ -]/);
-    if (parts.length !== 3) return null;
+    if (parts.length !== 3) {
+        return null;
+    }
 
     let day, month, year;
 
@@ -268,6 +273,7 @@ function parseSpanishDate(dateString) {
     if (!isNaN(part0) && part0 >= 1 && part0 <= 31) {
         day = part0;
     }
+
     if (!isNaN(part2)) {
         if (parts[2].length === 2) {
             year = part2 >= 70 ? 1900 + part2 : 2000 + part2;
@@ -275,6 +281,7 @@ function parseSpanishDate(dateString) {
             year = part2;
         }
     }
+
     const monthPart = parts[1];
     if (monthMap[monthPart] !== undefined) {
         month = monthMap[monthPart];
@@ -284,8 +291,10 @@ function parseSpanishDate(dateString) {
             month = monthNum - 1;
         }
     }
+
     if (day !== undefined && month !== undefined && year !== undefined) {
         return new Date(Date.UTC(year, month, day));
     }
+
     return null;
 }
