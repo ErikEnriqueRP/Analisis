@@ -19,9 +19,7 @@ function parseSpanishDate(dateString) {
     const part0 = parseInt(parts[0], 10);
     const part2 = parseInt(parts[2], 10);
 
-    if (!isNaN(part0) && part0 >= 1 && part0 <= 31) {
-        day = part0;
-    }
+    if (!isNaN(part0) && part0 >= 1 && part0 <= 31) day = part0;
 
     if (!isNaN(part2)) {
         if (parts[2].length === 2) {
@@ -48,47 +46,41 @@ function parseSpanishDate(dateString) {
     return null;
 }
 
-function formatDateToYYYYMMDD(date) {
-    if (!date || !(date instanceof Date) || isNaN(date)) return null;
-    const year = date.getUTCFullYear();
-    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+function formatDateToDDMMYYYY(date) {
+    if (!date || !(date instanceof Date) || isNaN(date)) return '';
     const day = date.getUTCDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+    const year = date.getUTCFullYear();
+    return `${day}/${month}/${year}`;
 }
-
 
 function preprocessCSVData(csvText) {
     const parsedData = Papa.parse(csvText, {
         header: true,
         skipEmptyLines: true,
-        dynamicTyping: false 
+        dynamicTyping: false
     });
 
     const data = parsedData.data;
     const headers = parsedData.meta.fields;
-
-    const targetDateColumns = ["creada", "actualizada"];
-    const dateColumns = headers.filter(h => targetDateColumns.includes(h.toLowerCase()));
+    const dateColumns = headers.filter(h => ["creada", "actualizada"].includes(h.toLowerCase()));
 
     data.forEach(row => {
         dateColumns.forEach(colName => {
             const cellValue = row[colName];
             if (cellValue && typeof cellValue === 'string') {
-                const dateObject = parseSpanishDate(cellValue.split(' ')[0]); // Tomamos solo la parte de la fecha
-                row[colName] = formatDateToYYYYMMDD(dateObject) || cellValue; // Si no se puede parsear, dejamos el original
+                const dateObject = parseSpanishDate(cellValue.split(' ')[0]);
+                row[colName] = formatDateToDDMMYYYY(dateObject) || cellValue;
             }
         });
 
         const summaryColumnName = 'Resumen';
         let summaryValue = row[summaryColumnName];
         if (summaryValue && typeof summaryValue === 'string' && summaryValue.length > 0) {
-            let firstChar = summaryValue[0];
-            let secondChar = summaryValue.length > 1 ? summaryValue[1] : '';
+            let firstChar = summaryValue[0], secondChar = summaryValue.length > 1 ? summaryValue[1] : '';
             const rest = summaryValue.substring(2);
-
             if (isNaN(parseInt(firstChar, 10))) firstChar = firstChar.toUpperCase();
             if (isNaN(parseInt(secondChar, 10))) secondChar = secondChar.toUpperCase();
-            
             row[summaryColumnName] = firstChar + secondChar + rest;
         }
     });

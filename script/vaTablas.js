@@ -622,42 +622,16 @@ async function generateChartImage(chartInfo, tableData) {
 }
 
 function parseSpanishDate(dateString) {
-    if (!dateString) return null;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return new Date(dateString);
-    const monthMap = {'ene':0,'feb':1,'mar':2,'abr':3,'may':4,'jun':5,'jul':6,'ago':7,'sep':8,'oct':9,'nov':10,'dic':11,'enero':0,'febrero':1,'marzo':2,'abril':3,'mayo':4,'junio':5,'julio':6,'agosto':7,'septiembre':8,'octubre':9,'noviembre':10,'diciembre':11};
+    if (!dateString || typeof dateString !== 'string') return null;
     
-    const parts = dateString.toLowerCase().replace(/ de /g, ' ').split(/[/ -]/);
-    if (parts.length < 3) return null;
+    const parts = dateString.split('/');
+    if (parts.length !== 3) return null;
 
-    let day, month, year;
-    let yearPart = parts[2];
-    let dayPart = parts[0];
-    let monthPart = parts[1];
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; 
+    const year = parseInt(parts[2], 10);
 
-    let yearNum = parseInt(yearPart, 10);
-    if (!isNaN(yearNum)) {
-        if (yearPart.length === 2) {
-            year = yearNum > 50 ? 1900 + yearNum : 2000 + yearNum;
-        } else if (yearPart.length === 4) {
-            year = yearNum;
-        }
-    }
-
-    if (monthMap[monthPart] !== undefined) {
-        month = monthMap[monthPart];
-    } else {
-        let monthNum = parseInt(monthPart, 10);
-        if (!isNaN(monthNum)) {
-            month = monthNum - 1;
-        }
-    }
-
-    let dayNum = parseInt(dayPart, 10);
-    if (!isNaN(dayNum)) {
-        day = dayNum;
-    }
-
-    if (day >= 1 && day <= 31 && month >= 0 && month <= 11 && year) {
+    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
         return new Date(Date.UTC(year, month, day));
     }
 
