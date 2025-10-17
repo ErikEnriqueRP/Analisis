@@ -1,30 +1,17 @@
 let activeFilters = {};
 
 function getFullYearFromString(dateString) {
-    if (!dateString || typeof dateString !== 'string') {
-        return null;
-    }
-    const parts = dateString.split(/[/ -]/);
-    if (parts.length < 3) {
-        return null;
-    }
-    const yearPart = parts[parts.length - 1];
-    const yearNum = parseInt(yearPart, 10);
-    if (isNaN(yearNum)) {
-        return null;
-    }
-    if (yearPart.length === 2) {
-        return yearNum > 50 ? 1900 + yearNum : 2000 + yearNum;
-    }
-    return yearNum;
+    const date = parseSpanishDate(dateString);
+    return date ? date.getUTCFullYear() : null;
 }
 
 function parseSpanishDate(dateString) {
-    if (!dateString) return null;
+    if (!dateString || typeof dateString !== 'string') return null;
 
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
         return new Date(dateString);
     }
+
     const monthMap = {
         'ene': 0, 'feb': 1, 'mar': 2, 'abr': 3, 'may': 4, 'jun': 5,
         'jul': 6, 'ago': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dic': 11,
@@ -36,20 +23,37 @@ function parseSpanishDate(dateString) {
     if (parts.length < 3) return null;
 
     let day, month, year;
+    let yearPart = parts[2];
+    let dayPart = parts[0];
+    let monthPart = parts[1];
 
-    for (const part of parts) {
-        if (monthMap[part] !== undefined) {
-            month = monthMap[part];
-        } else if (part.length === 4 && !isNaN(part)) {
-            year = parseInt(part, 10);
-        } else if (part.length <= 2 && !isNaN(part)) {
-            day = parseInt(part, 10);
+    let yearNum = parseInt(yearPart, 10);
+    if (!isNaN(yearNum)) {
+        if (yearPart.length === 2) {
+            year = yearNum > 50 ? 1900 + yearNum : 2000 + yearNum;
+        } else if (yearPart.length === 4) {
+            year = yearNum;
         }
     }
 
-    if (day && month !== undefined && year) {
+    if (monthMap[monthPart] !== undefined) {
+        month = monthMap[monthPart];
+    } else {
+        let monthNum = parseInt(monthPart, 10);
+        if (!isNaN(monthNum)) {
+            month = monthNum - 1;
+        }
+    }
+
+    let dayNum = parseInt(dayPart, 10);
+    if (!isNaN(dayNum)) {
+        day = dayNum;
+    }
+
+    if (day >= 1 && day <= 31 && month >= 0 && month <= 11 && year) {
         return new Date(Date.UTC(year, month, day));
     }
+
     return null;
 }
 
