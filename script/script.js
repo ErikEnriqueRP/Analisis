@@ -21,6 +21,7 @@ btnAceptar.addEventListener('click', function() {
     reader.onload = function(event) {
         const fileContent = event.target.result;
         const modifiedFileContent = preprocessCSVData(fileContent);
+        localStorage.removeItem('savedTables'); 
         localStorage.setItem('csvData', modifiedFileContent);
         localStorage.setItem('csvFileName', file.name);
 

@@ -33,20 +33,16 @@ function openChartModalForTable(tableInfo, data, headers) {
 function generateChart(data) {
     const categoryCol = document.getElementById('categoryColumn').value;
     const valueCol = document.getElementById('valueColumn').value;
-
     if (!categoryCol || !valueCol) {
-        alert("Por favor, selecciona ambas columnas.");
+        showCustomAlert({ title: 'Datos Incompletos', message: 'Por favor, selecciona ambas columnas para generar el gráfico.' });
         return null;
     }
-
     let aggregatedData = {};
     let subCategories = {};
     const isStateChart = categoryCol === 'Estado';
-
     data.forEach(row => {
         let category;
         let originalValue;
-
         if (isStateChart) {
             originalValue = row[categoryCol] || '';
             category = mapStatusToGroup(originalValue);
@@ -58,23 +54,17 @@ function generateChart(data) {
         } else {
             category = row[categoryCol] || 'Sin categoría';
         }
-
         aggregatedData[category] = (aggregatedData[category] || 0) + (valueCol === '__count__' ? 1 : (parseFloat(String(row[valueCol]).replace(/,/g, '')) || 0));
     });
-    
     const canvas = document.getElementById('pieChart');
     const legendContainer = document.getElementById('chart-legend');
     if (!canvas || !legendContainer) return;
-
     const ctx = canvas.getContext('2d');
     if (myPieChart) myPieChart.destroy();
-
     const total = Object.values(aggregatedData).reduce((sum, value) => sum + value, 0);
     const labels = Object.keys(aggregatedData);
     const values = Object.values(aggregatedData);
-    
     const chartColors = getChartColors(isStateChart, labels);
-    
     myPieChart = new Chart(ctx, {
         type: 'pie',
         data: {
@@ -105,19 +95,15 @@ function generateChart(data) {
             }
         }
     });
-
     legendContainer.innerHTML = '';
     const ul = document.createElement('ul');
-    
     labels.forEach((label, index) => {
         const value = values[index];
         const percentage = total > 0 ? (value / total * 100).toFixed(2) : 0;
         const color = myPieChart.data.datasets[0].backgroundColor[index];
-        
         const li = document.createElement('li');
         li.innerHTML = `<span class="legend-swatch" style="background-color: ${color}"></span><span>${label}: ${value.toLocaleString()} (${percentage}%)</span>`;
         ul.appendChild(li);
-
         if (isStateChart && label === 'Abiertos') {
             Object.entries(subCategories).forEach(([status, count]) => {
                 const subPercentage = total > 0 ? (count / total * 100).toFixed(2) : 0;
@@ -129,7 +115,6 @@ function generateChart(data) {
         }
     });
     legendContainer.appendChild(ul);
-
     return { aggregatedData };
 }
 
@@ -138,36 +123,36 @@ function saveCurrentChart(tableId, tableData) {
     if (!chartResult) {
         return;
     }
-
-    setTimeout(() => {
-        const categoryCol = document.getElementById('categoryColumn').value;
-        const valueCol = document.getElementById('valueColumn').value;
-
-        const chartTitle = prompt("Introduce un nombre para este gráfico:", `Gráfico de ${categoryCol}`);
-        if (!chartTitle || chartTitle.trim() === "") {
-            alert("Guardado cancelado. Se necesita un nombre.");
+    const categoryCol = document.getElementById('categoryColumn').value;
+    showCustomAlert({
+        title: 'Nombre del Gráfico',
+        message: 'Introduce un nombre para este gráfico:',
+        type: 'prompt',
+        inputValue: `Gráfico de ${categoryCol}`
+    }).then(chartTitle => {
+        if (!chartTitle) {
+            showCustomAlert({ title: 'Cancelado', message: 'Guardado cancelado. Se necesita un nombre.' });
             return;
         }
-
+        const valueCol = document.getElementById('valueColumn').value;
         const newChart = {
             id: Date.now(),
-            title: chartTitle.trim(),
+            title: chartTitle,
             categoryCol: categoryCol,
             valueCol: valueCol,
         };
-
         const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
         const tableToUpdate = savedTables.find(table => table.id === tableId);
-
         if (tableToUpdate) {
             if (!tableToUpdate.charts) {
                 tableToUpdate.charts = [];
             }
             tableToUpdate.charts.push(newChart);
             localStorage.setItem('savedTables', JSON.stringify(savedTables));
-
             renderSingleSavedChart(newChart, tableData, tableId);
             document.getElementById('chartModal').style.display = 'none';
         }
-    }, 50);
+    }).catch(() => {
+        console.log("Guardado de gráfico cancelado.");
+    });
 }

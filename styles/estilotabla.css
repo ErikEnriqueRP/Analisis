@@ -563,3 +563,15 @@ th:hover .filter-icon {
     font-size: 13px;
     color: #555;
 }
+
+#custom-modal .modal-footer {
+    border-top: 1px solid #eee;
+}
+
+#custom-modal-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: var(--border-radius);
+    box-sizing: border-box;
+}

@@ -363,17 +363,24 @@ async function showChartDetails(chartInfo, tableData) {
 }
 
 function deleteSingleChart(tableId, chartId) {
-    if (!confirm("¿Estás seguro de que quieres borrar este gráfico?")) return;
-    const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
-    const tableToUpdate = savedTables.find(table => table.id === tableId);
-    if (tableToUpdate && tableToUpdate.charts) {
-        tableToUpdate.charts = tableToUpdate.charts.filter(chart => chart.id !== chartId);
-        localStorage.setItem('savedTables', JSON.stringify(savedTables));
-        const chartCardElement = document.getElementById(`chart-card-${chartId}`);
-        if (chartCardElement) {
-            chartCardElement.remove();
+    showCustomAlert({
+        title: 'Confirmar Borrado',
+        message: '¿Estás seguro de que quieres borrar este gráfico?',
+        type: 'confirm'
+    }).then(() => {
+        const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
+        const tableToUpdate = savedTables.find(table => table.id === tableId);
+        if (tableToUpdate && tableToUpdate.charts) {
+            tableToUpdate.charts = tableToUpdate.charts.filter(chart => chart.id !== chartId);
+            localStorage.setItem('savedTables', JSON.stringify(savedTables));
+            const chartCardElement = document.getElementById(`chart-card-${chartId}`);
+            if (chartCardElement) {
+                chartCardElement.remove();
+            }
         }
-    }
+    }).catch(() => {
+        console.log('Borrado de gráfico cancelado.');
+    });
 }
 
 function renderTablePage(tableId, data, headers, rowsPerPage) {
@@ -427,28 +434,43 @@ function renderPaginationControls(tableId, data, headers, rowsPerPage) {
 }
 
 function deleteSingleTable(tableId) {
-    if (!confirm('¿Estás seguro de que quieres borrar esta tabla guardada?')) {
-        return;
-    }
-    const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
-    const updatedTables = savedTables.filter(table => table.id !== tableId);
-    localStorage.setItem('savedTables', JSON.stringify(updatedTables));
-    location.reload();
+    showCustomAlert({
+        title: 'Confirmar Borrado',
+        message: '¿Estás seguro de que quieres borrar esta tabla guardada?',
+        type: 'confirm'
+    }).then(() => {
+        const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
+        const updatedTables = savedTables.filter(table => table.id !== tableId);
+        localStorage.setItem('savedTables', JSON.stringify(updatedTables));
+        location.reload();
+    }).catch(() => {
+        console.log('Borrado de tabla cancelado por el usuario.');
+    });
 }
 
 function deleteAllTables() {
-    if (confirm('¿Estás seguro de que quieres borrar TODAS las tablas guardadas? Esta acción no se puede deshacer.')) {
+    showCustomAlert({
+        title: '¡ADVERTENCIA!',
+        message: '¿Estás seguro de que quieres borrar TODAS las tablas guardadas? Esta acción no se puede deshacer.',
+        type: 'confirm'
+    }).then(() => {
         localStorage.removeItem('savedTables');
-        alert('Todas las tablas guardadas han sido borradas.');
+        return showCustomAlert({
+            title: 'Proceso Completado',
+            message: 'Todas las tablas guardadas han sido borradas.'
+        });
+    }).then(() => {
         location.reload();
-    }
+    }).catch(() => {
+        console.log('Borrado de todas las tablas cancelado por el usuario.');
+    });
 }
 
 async function exportAllTablesToExcel() {
     const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
     const mainCsvData = localStorage.getItem('csvData');
     if (savedTables.length === 0 || !mainCsvData) {
-        alert("No hay tablas guardadas o datos base para exportar.");
+        showCustomAlert({ title: 'Exportación Fallida', message: 'No hay tablas guardadas o datos base para exportar.' });
         return;
     }
     const parsedData = await new Promise(resolve => {
@@ -509,17 +531,13 @@ async function exportAllTablesToExcel() {
                     if (base64Image) {
                         const imageId = workbook.addImage({ base64: base64Image, extension: 'png' });
                         worksheet.addImage(imageId, {
-                            tl: { col: 0, row: chartRowStart }, 
+                            tl: { col: 0, row: chartRowStart },
                             br: { col: 4, row: chartRowStart + 18 }
                         });
                     }
                 }
                 const dataTableStartRow = chartRowStart + 1;
-                const dataTableStartCol = 5; 
-
-                //const titleCell = worksheet.getCell(dataTableStartRow - 1, dataTableStartCol);
-                //titleCell.value = chartInfo.title;
-                //titleCell.font = { bold: true, size: 14 };
+                const dataTableStartCol = 5;
                 const headerRow = worksheet.getRow(dataTableStartRow);
                 const headerStyle = {
                     font: { bold: true, color: { argb: 'FFFFFFFF' } },
@@ -551,7 +569,6 @@ async function exportAllTablesToExcel() {
                 worksheet.getColumn(dataTableStartCol).width = 20;
                 worksheet.getColumn(dataTableStartCol + 1).width = 12;
                 worksheet.getColumn(dataTableStartCol + 2).width = 12;
-                
                 chartRowStart += 22;
             }
         }

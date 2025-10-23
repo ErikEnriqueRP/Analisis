@@ -23,12 +23,12 @@ const defaultVisibleColumns = ['Area','Clave de incidencia','Resumen','Prioridad
 
     if (allColumnsVisible) {
         headers.forEach(h => h.visible = true);
-        showAllBtn.textContent = 'Mostrar Predeterminadas';
+        showAllBtn.textContent = 'Mostrar columnas predeterminadas';
     } else {
         headers.forEach(h => {
             h.visible = defaultVisibleColumns.includes(h.name);
         });
-        showAllBtn.textContent = 'Mostrar Todo';
+        showAllBtn.textContent = 'Mostrar todas las columnas';
     }
     
     displayPage();
@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
             filteredData = [...fullData];
             
             allColumnsVisible = false;
-            document.getElementById('showAllColumnsBtn').textContent = 'Mostrar Todo';
+            document.getElementById('showAllColumnsBtn').textContent = 'Mostrar todas las columnas';
 
             populateQuickFilters();
             
@@ -202,15 +202,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function exportToExcelWithChart() {
         if (filteredData.length === 0) {
-            alert("No hay datos filtrados para exportar.");
+            showCustomAlert({ title: 'Aviso', message: 'No hay datos filtrados para exportar.' });
             return;
         }
-
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Datos Filtrados');
         const visibleHeaders = headers.filter(h => h.visible).map(h => ({ header: h.name, key: h.name, width: 20 }));
         worksheet.columns = visibleHeaders;
-
         const dataToExport = filteredData.map(row => {
             let exportRow = {};
             headers.forEach(h => {
@@ -219,10 +217,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return exportRow;
         });
         worksheet.addRows(dataToExport);
-
         worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
         worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8E44AD' } };
-
         if (chartImageDataUrl) {
             const imageId = workbook.addImage({ base64: chartImageDataUrl, extension: 'png' });
             worksheet.addImage(imageId, {
@@ -230,49 +226,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 br: { col: 8, row: filteredData.length + 23 }
             });
         }
-
         const buffer = await workbook.xlsx.writeBuffer();
         saveAs(new Blob([buffer]), 'datos_con_grafico.xlsx');
     }
 
     function generateChartFromFilteredData() {
-    const categoryCol = document.getElementById('categoryColumn').value;
-    const valueCol = document.getElementById('valueColumn').value;
-    if (!categoryCol || !valueCol) {
-        alert('Por favor, selecciona ambas columnas.');
-        return;
-    }
-
-    let aggregatedData;
-    if (valueCol === '__count__') {
-        aggregatedData = filteredData.reduce((acc, row) => {
-            let category;
-            if (categoryCol === 'Estado') {
-                category = mapStatusToGroup(row[categoryCol]);
-            } else if (categoryCol === 'Prioridad') {
-                category = mapPriorityToGroup(row[categoryCol]);
-            } else {
-                category = row[categoryCol] || 'Sin categoría';
-            }
-            acc[category] = (acc[category] || 0) + 1;
-            return acc;
-        }, {});
-    } else {
-        aggregatedData = filteredData.reduce((acc, row) => {
-            let category;
-            if (categoryCol === 'Estado') {
-                category = mapStatusToGroup(row[categoryCol]);
-            } else if (categoryCol === 'Prioridad') {
-                category = mapPriorityToGroup(row[categoryCol]);
-            } else {
-                category = row[categoryCol] || 'Sin categoría';
-            }
-            const value = parseFloat(String(row[valueCol]).replace(/,/g, '')) || 0;
-            if (value !== 0) acc[category] = (acc[category] || 0) + value;
-            return acc;
-        }, {});
-    }
-    drawPieChart(aggregatedData, valueCol === '__count__' ? 'Conteo' : valueCol);
+        const categoryCol = document.getElementById('categoryColumn').value;
+        const valueCol = document.getElementById('valueColumn').value;
+        if (!categoryCol || !valueCol) {
+            showCustomAlert({ title: 'Atención', message: 'Por favor, selecciona ambas columnas.' });
+            return;
+        }
+        let aggregatedData;
+        if (valueCol === '__count__') {
+            aggregatedData = filteredData.reduce((acc, row) => {
+                let category;
+                if (categoryCol === 'Estado') {
+                    category = mapStatusToGroup(row[categoryCol]);
+                } else if (categoryCol === 'Prioridad') {
+                    category = mapPriorityToGroup(row[categoryCol]);
+                } else {
+                    category = row[categoryCol] || 'Sin categoría';
+                }
+                acc[category] = (acc[category] || 0) + 1;
+                return acc;
+            }, {});
+        } else {
+            aggregatedData = filteredData.reduce((acc, row) => {
+                let category;
+                if (categoryCol === 'Estado') {
+                    category = mapStatusToGroup(row[categoryCol]);
+                } else if (categoryCol === 'Prioridad') {
+                    category = mapPriorityToGroup(row[categoryCol]);
+                } else {
+                    category = row[categoryCol] || 'Sin categoría';
+                }
+                const value = parseFloat(String(row[valueCol]).replace(/,/g, '')) || 0;
+                if (value !== 0) acc[category] = (acc[category] || 0) + value;
+                return acc;
+            }, {});
+        }
+        drawPieChart(aggregatedData, valueCol === '__count__' ? 'Conteo' : valueCol);
     }
 
     function drawPieChart(data, valueColName) {
@@ -386,18 +380,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function handleAddLeftColumn() {
-        leftColumnConfig = {
-            enabled: document.getElementById('leftAutoApply').checked,
-            source: document.getElementById('leftSourceColumn').value,
-            numChars: parseInt(document.getElementById('leftNumChars').value) || 2,
-            concat: document.getElementById('leftConcatColumn').value || '',
-            newName: (document.getElementById('leftNewColumnName').value || `IZQ_${source}`).trim()
-        };
+        const source = document.getElementById('leftSourceColumn').value;
+        const newName = (document.getElementById('leftNewColumnName').value || `IZQ_${source}`).trim();
 
-        if (!leftColumnConfig.source || !leftColumnConfig.newName) {
-            alert("La columna base y el nuevo nombre son obligatorios.");
+        if (!source || !newName) {
+            showCustomAlert({ title: 'Error de Configuración', message: 'La columna base y el nuevo nombre son obligatorios.' });
             return;
         }
+        
+        leftColumnConfig = {
+            enabled: document.getElementById('leftAutoApply').checked,
+            source: source,
+            numChars: parseInt(document.getElementById('leftNumChars').value) || 2,
+            concat: document.getElementById('leftConcatColumn').value || '',
+            newName: newName
+        };
 
         localStorage.setItem('leftColumnConfig', JSON.stringify(leftColumnConfig));
         applyLeftColumn(leftColumnConfig, true);
@@ -453,38 +450,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveCurrentTableState() {
-    if (filteredData.length === 0) {
-        alert("No se puede guardar una tabla sin datos. Por favor, ajuste los filtros.");
-        return;
+        if (filteredData.length === 0) {
+            showCustomAlert({ title: 'Tabla Vacía', message: 'No se puede guardar una tabla sin datos. Por favor, ajuste los filtros.' });
+            return;
+        }
+
+        showCustomAlert({
+            title: 'Confirmar Guardado',
+            message: '¿Estás seguro de que quieres guardar el estado actual de la tabla (con los filtros y la visibilidad de columnas aplicados)?',
+            type: 'confirm'
+        }).then(() => {
+            return showCustomAlert({
+                title: 'Nombre de la Tabla',
+                message: 'Por favor, introduce un nombre para esta tabla guardada.',
+                type: 'prompt',
+                inputValue: 'JIRAS_Filtrados'
+            });
+        }).then(tableName => {
+            if (!tableName) {
+                showCustomAlert({ title: 'Cancelado', message: 'Se requiere un nombre para la tabla.' });
+                return;
+            }
+
+            const serializableFilters = {};
+            for (const key in activeFilters) {
+                serializableFilters[key] = Array.from(activeFilters[key]);
+            }
+
+            const visibleColumnNames = headers.filter(h => h.visible).map(h => h.name);
+            const savedTable = {
+                id: Date.now(),
+                name: tableName,
+                filters: serializableFilters,
+                visibleColumns: visibleColumnNames,
+            };
+
+            const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
+            savedTables.push(savedTable);
+            localStorage.setItem('savedTables', JSON.stringify(savedTables));
+
+            showCustomAlert({
+                title: 'Éxito',
+                message: `¡Tabla "${tableName}" guardada con éxito! Puedes verla en el menú "Tabla" → "📋Tablas Guardadas".`
+            });
+        }).catch(() => {
+        });
     }
-    const isConfirmed = confirm("¿Estás seguro de que quieres guardar el estado actual de la tabla (con los filtros y la visibilidad de columnas aplicados)?");
-    if (!isConfirmed) {
-        return;
-    }
-    let tableName = prompt("Por favor, introduce un nombre para esta tabla guardada:", "JIRAS_Filtrados");
-    if (tableName === null || tableName.trim() === "") {
-        alert("Guardado cancelado. Se requiere un nombre para la tabla.");
-        return;
-    }
-    const serializableFilters = {};
-    for (const key in activeFilters) {
-        serializableFilters[key] = Array.from(activeFilters[key]);
-    }
-
-    const visibleColumnNames = headers.filter(h => h.visible).map(h => h.name);
-
-    const savedTable = {
-        id: Date.now(),
-        name: tableName.trim(),
-        filters: serializableFilters,
-        visibleColumns: visibleColumnNames, 
-    };
-
-    const savedTables = JSON.parse(localStorage.getItem('savedTables') || '[]');
-    savedTables.push(savedTable);
-
-    localStorage.setItem('savedTables', JSON.stringify(savedTables));
-
-    alert(`¡Tabla "${tableName.trim()}" guardada con éxito!\nPuedes verla en Tabla --> Tablas Guardadas.`);
-}
 });
