@@ -358,9 +358,18 @@ document.addEventListener('DOMContentLoaded', () => {
             concatSelect.innerHTML += option;
         });
 
+        const enableLeftCheckbox = document.getElementById('enableLeftFunc');
+        const numCharsInput = document.getElementById('leftNumChars');
+
+        enableLeftCheckbox.onchange = () => {
+            numCharsInput.disabled = !enableLeftCheckbox.checked;
+        };
+
         sourceSelect.value = leftColumnConfig.source || "";
         concatSelect.value = leftColumnConfig.concat || "";
-        document.getElementById('leftNumChars').value = leftColumnConfig.numChars || 2;
+        enableLeftCheckbox.checked = leftColumnConfig.applyLeft !== false;
+        numCharsInput.value = leftColumnConfig.numChars || 2;
+        numCharsInput.disabled = !enableLeftCheckbox.checked;
         document.getElementById('leftNewColumnName').value = leftColumnConfig.newName || "";
         document.getElementById('leftAutoApply').checked = !!leftColumnConfig.enabled;
 
@@ -381,16 +390,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function handleAddLeftColumn() {
         const source = document.getElementById('leftSourceColumn').value;
-        const newName = (document.getElementById('leftNewColumnName').value || `IZQ_${source}`).trim();
+        const newName = (document.getElementById('leftNewColumnName').value || `Derivada_${source}`).trim();
 
         if (!source || !newName) {
-            showCustomAlert({ title: 'Error de Configuración', message: 'La columna base y el nuevo nombre son obligatorios.' });
+            showCustomAlert({ title: "Datos Incompletos", message: "La 'Columna de Origen' y el 'Nombre Nueva Columna' son obligatorios."});
             return;
         }
-        
+
         leftColumnConfig = {
             enabled: document.getElementById('leftAutoApply').checked,
             source: source,
+            applyLeft: document.getElementById('enableLeftFunc').checked,
             numChars: parseInt(document.getElementById('leftNumChars').value) || 2,
             concat: document.getElementById('leftConcatColumn').value || '',
             newName: newName
@@ -404,16 +414,20 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyLeftColumn(cfg, rerender) {
         if (!cfg || !cfg.source) return;
 
-        const newName = cfg.newName || `IZQ_${cfg.source}`;
+        const newName = cfg.newName || `Derivada_${cfg.source}`;
         if (!headers.some(h => h.name === newName)) {
             headers.push({ name: newName, visible: true });
         }
 
         fullData.forEach(row => {
-            const src = row[cfg.source] || '';
-            const leftPart = src.substring(0, Math.max(0, cfg.numChars));
+            let sourcePart = row[cfg.source] || '';
+            
+            if (cfg.applyLeft) {
+                sourcePart = sourcePart.substring(0, Math.max(0, cfg.numChars));
+            }
+
             const concatPart = cfg.concat ? (row[cfg.concat] || '') : '';
-            row[newName] = concatPart ? `${leftPart}_${concatPart}` : leftPart;
+            row[newName] = concatPart ? `${sourcePart}_${concatPart}` : sourcePart;
         });
 
         if (rerender) {

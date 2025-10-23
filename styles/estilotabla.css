@@ -575,3 +575,47 @@ th:hover .filter-icon {
     border-radius: var(--border-radius);
     box-sizing: border-box;
 }
+
+.add-column-form {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 15px;
+    align-items: center;
+}
+
+.add-column-form > label {
+    text-align: right;
+    font-weight: bold;
+    color: #555;
+}
+
+.char-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.char-input-wrapper input[type="number"] {
+    width: 70px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.char-input-wrapper input[type="number"]:disabled {
+    background-color: #f1f1f1;
+    cursor: not-allowed;
+}
+
+.char-input-wrapper .checkbox-label {
+    font-weight: normal;
+}
+
+.full-width-option {
+    grid-column: 1 / -1;
+}
+
+.full-width-option label {
+    text-align: left;
+    font-weight: normal;
+}
